@@ -1,0 +1,56 @@
+#searchMes {
+  border: none;
+  background-color: transparent;
+}
+.contentBusc {
+  display: flex;
+  align-items: center;
+  gap: 1em;
+  padding: 1;
+  position: relative;
+}
+.filtrosContent {
+  display: flex;
+  flex-direction: row;
+  position: absolute;
+  top: 2em;
+  left: 20em;
+  align-items: flex-end;
+  background: #fff;
+  border: 1px solid #ddd;
+  padding: 1em;
+  border-radius: 8px;
+  z-index: 10;
+  gap: 0.5em;
+  flex-wrap: wrap;
+
+  min-width: 220px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+.filtrosContent.show {
+  display: flex;
+}
+.filtrosContent select,
+.filtrosContent input {
+  max-width: 120px;
+}
+#btnFiltrarMes {
+  width: 90%;
+  margin: auto;
+}
+
+@media (max-width: 600px) {
+  .filtrosContent {
+    flex-direction: column;
+    align-items: stretch;
+    left: 0;
+    min-width: 180px;
+    top: 2.5em;
+  }
+  .filtrosContent select,
+  .filtrosContent input,
+  #btnFiltrarMes {
+    max-width: 100%;
+    width: 100%;
+  }
+}

@@ -1,0 +1,441 @@
+{% extends "navbar/navUser.html" %} {% block contentt %}
+<div class="container_tabla mt-4">
+  <div class="header_tabla">
+    <button class="exit_tabla" aria-label="Salir del módulo">
+      <i class="bx bx-log-out" aria-hidden="true"></i>
+      <span class="salir">Salir</span>
+    </button>
+  </div>
+
+  <main>
+    <h1 class="fs-3 text-center">Gestión de Datos</h1>
+    <hr class="hr-data" aria-hidden="true" />
+
+    {% with messages = get_flashed_messages(with_categories=true) %} {% if
+    messages %} {% for category, message in messages %}
+    <div
+      class="alert mse alert-{{ 'success' if category == 'success' else 'danger' }} msj-alert"
+      role="alert"
+    >
+      <button class="close-alert" aria-label="Cerrar mensaje">×</button>
+      <i
+        class="bx bx-{{ 'check-circle' if category == 'success' else 'message-square-x' }} icons"
+        aria-hidden="true"
+      ></i>
+      <h2 class="h5">{{ 'Éxito' if category == 'success' else 'Error' }}</h2>
+      <p>{{ message }}</p>
+    </div>
+    {% endfor %} {% endif %} {% endwith %}
+
+    <section aria-labelledby="carga-archivo-heading">
+      <h2 id="carga-archivo-heading" class="visually-hidden">
+        Carga de archivos Excel
+      </h2>
+
+      <div
+        class="contentBusc d-flex justify-content-center align-items-center mt-5"
+      >
+        <form
+          action="/cargar_data"
+          method="POST"
+          enctype="multipart/form-data"
+          id="cargarExcelForm"
+          class="d-flex flex-column align-items-center"
+        >
+          <div
+            class="dropzone-area mb-3"
+            id="dropzoneArea"
+            role="region"
+            aria-labelledby="dropzoneInstructions"
+          >
+            <p id="dropzoneText" class="mb-3">
+              Arrastra y suelta tu archivo Excel aquí o haz clic para
+              seleccionarlo
+            </p>
+            <p id="dropzoneInstructions" class="visually-hidden">
+              Área para arrastrar y soltar archivos Excel (.xlsx) con tamaño
+              máximo de 10MB
+            </p>
+
+            <input
+              type="file"
+              name="file"
+              id="file"
+              class="form-control-file"
+              accept=".xlsx"
+              required
+              aria-describedby="fileHelp"
+            />
+            <small id="fileHelp" class="form-text text-muted"
+              >Formatos aceptados: .xlsx (Tamaño máximo: 10MB)</small
+            >
+
+            <button
+              type="button"
+              class="btn btn-secondary mt-3"
+              id="selectFileButton"
+            >
+              <i class="bx bx-folder-open me-1" aria-hidden="true"></i>
+              Seleccionar Archivo
+            </button>
+          </div>
+
+          <button type="submit" class="btn btn-primary" id="submitBtn" disabled>
+            <i class="bx bx-upload me-1" aria-hidden="true"></i> Cargar Datos
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <section aria-labelledby="acciones-heading" class="mt-5">
+      <h2 id="acciones-heading" class="visually-hidden">
+        Acciones de gestión de datos
+      </h2>
+
+      <div class="skp_tabla d-flex justify-content-center flex-wrap gap-3">
+        <button
+          type="button"
+          class="btn btn-info btn-lg"
+          onclick="iniciarBackup('excel')"
+        >
+          <i class="bx bx-save me-1" aria-hidden="true"></i> Copia de Seguridad
+          (Excel)
+        </button>
+
+        {% if session.get('Super_Admin') == 1 %}
+        <button
+          type="button"
+          id="vaciarDbBtn"
+          class="btn btn-danger btn-lg"
+          onclick="confirmarVaciarDb()"
+        >
+          <i class="bx bx-trash me-1" aria-hidden="true"></i> Vaciar Base de
+          Datos
+        </button>
+        {% endif %}
+      </div>
+    </section>
+  </main>
+
+  <form
+    id="backup-excel"
+    action="/backup_excel"
+    method="POST"
+    class="d-none"
+  ></form>
+  <form
+    id="vaciarDbForm"
+    action="/vaciar_db"
+    method="POST"
+    class="d-none"
+  ></form>
+</div>
+
+<style>
+  .container_tabla {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  .msj-alert {
+    position: absolute;
+    top: 30px;
+
+    min-width: 300px;
+    max-width: 90vw;
+    z-index: 9999;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    opacity: 0.98;
+  }
+  .contentBusc {
+    margin-bottom: 3rem;
+  }
+
+  .dropzone-area {
+    border: 2px dashed #ccc;
+    border-radius: 8px;
+    padding: 30px;
+    text-align: center;
+    transition: all 0.3s ease;
+    width: 100%;
+    max-width: 500px;
+    margin: 20px auto;
+    position: relative;
+    background-color: #f8f9fa;
+  }
+
+  .dropzone-area:hover {
+    border-color: #007bff;
+    background-color: #e9f5ff;
+  }
+
+  .dropzone-area.dragover {
+    border-color: #007bff;
+    background-color: #d4e6ff;
+    transform: scale(1.02);
+  }
+
+  .dropzone-area input[type="file"] {
+    opacity: 0;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    cursor: pointer;
+  }
+
+  .alert {
+    position: relative;
+    padding: 1rem 2.5rem 1rem 1rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid transparent;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .alert-success {
+    color: #0f5132;
+    background-color: #d1e7dd;
+    border-color: #badbcc;
+  }
+
+  .alert-danger {
+    color: #842029;
+    background-color: #f8d7da;
+    border-color: #f5c2c7;
+  }
+
+  .close-alert {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    padding: 0.25rem 0.5rem;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 1.25rem;
+    line-height: 1;
+  }
+
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .skp_tabla {
+    gap: 1rem;
+  }
+
+  @media (max-width: 576px) {
+    .dropzone-area {
+      padding: 20px 15px;
+    }
+
+    .skp_tabla button {
+      width: 100%;
+    }
+  }
+</style>
+
+<script>
+  const swalCustomStyles = {
+    background: "#ffffff",
+    color: "#000000",
+  };
+
+  const dropzoneArea = document.getElementById("dropzoneArea");
+  const fileInput = document.getElementById("file");
+  const dropzoneText = document.getElementById("dropzoneText");
+  const selectFileButton = document.getElementById("selectFileButton");
+  const submitBtn = document.getElementById("submitBtn");
+
+  document.querySelectorAll(".close-alert").forEach((button) => {
+    button.addEventListener("click", (e) => {
+      e.target.closest(".alert").style.opacity = "0";
+      setTimeout(() => {
+        e.target.closest(".alert").remove();
+      }, 300);
+    });
+  });
+
+  ["dragenter", "dragover", "dragleave", "drop"].forEach((eventName) => {
+    dropzoneArea.addEventListener(eventName, preventDefaults, false);
+  });
+
+  function preventDefaults(e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+
+  ["dragenter", "dragover"].forEach((eventName) => {
+    dropzoneArea.addEventListener(eventName, highlight, false);
+  });
+
+  ["dragleave", "drop"].forEach((eventName) => {
+    dropzoneArea.addEventListener(eventName, unhighlight, false);
+  });
+
+  function highlight() {
+    dropzoneArea.classList.add("dragover");
+  }
+
+  function unhighlight() {
+    dropzoneArea.classList.remove("dragover");
+  }
+
+  dropzoneArea.addEventListener("drop", handleDrop, false);
+
+  function handleDrop(e) {
+    const dt = e.dataTransfer;
+    const files = dt.files;
+
+    if (files.length > 0) {
+      fileInput.files = files;
+      validarArchivo(fileInput);
+    }
+  }
+
+  selectFileButton.addEventListener("click", () => {
+    fileInput.click();
+  });
+
+  fileInput.addEventListener("change", () => {
+    if (fileInput.files.length > 0) {
+      validarArchivo(fileInput);
+    }
+  });
+
+  function validarArchivo(input) {
+    const archivo = input.files[0];
+    if (!archivo) return;
+
+    const extensionValida = archivo.name.endsWith(".xlsx");
+    const tamanoValido = archivo.size <= 10 * 1024 * 1024;
+
+    if (!extensionValida) {
+      mostrarError(
+        "Formato no válido",
+        "Por favor, seleccione un archivo Excel (.xlsx)"
+      );
+      resetFileInput();
+      return;
+    }
+
+    if (!tamanoValido) {
+      mostrarError(
+        "Archivo demasiado grande",
+        "El tamaño máximo permitido es 10MB"
+      );
+      resetFileInput();
+      return;
+    }
+
+    dropzoneText.textContent = archivo.name;
+    submitBtn.disabled = false;
+
+    dropzoneArea.style.borderColor = "#28a745";
+    setTimeout(() => {
+      dropzoneArea.style.borderColor = "#007bff";
+    }, 1000);
+  }
+
+  function resetFileInput() {
+    fileInput.value = "";
+    dropzoneText.textContent =
+      "Arrastra y suelta tu archivo Excel aquí o haz clic para seleccionarlo";
+    submitBtn.disabled = true;
+    dropzoneArea.style.borderColor = "#ccc";
+  }
+
+  // Msj de errores
+  function mostrarError(titulo, mensaje) {
+    Swal.fire({
+      icon: "error",
+      title: titulo,
+      text: mensaje,
+      background: swalCustomStyles.background,
+      color: swalCustomStyles.color,
+      confirmButtonColor: "#dc3545",
+    });
+  }
+
+  // Envío del formulario
+  document
+    .getElementById("cargarExcelForm")
+    .addEventListener("submit", function (e) {
+      if (!fileInput.files || fileInput.files.length === 0) {
+        e.preventDefault();
+        mostrarError(
+          "Archivo requerido",
+          "Por favor, seleccione un archivo Excel para cargar"
+        );
+      } else {
+        Swal.fire({
+          title: "Procesando archivo",
+          html: "Por favor espere mientras se cargan los datos...",
+          allowOutsideClick: false,
+          backdrop: true,
+          didOpen: () => {
+            Swal.showLoading();
+          },
+        });
+      }
+    });
+
+  // Funciones de acciones
+  function iniciarBackup(tipo) {
+    Swal.fire({
+      title: "Confirmar copia de seguridad",
+      text: `¿Desea generar una copia de seguridad en formato ${tipo.toUpperCase()} de la base de datos?`,
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonColor: "#17a2b8",
+      cancelButtonColor: "#6c757d",
+      confirmButtonText: "Generar copia",
+      cancelButtonText: "Cancelar",
+      background: swalCustomStyles.background,
+      color: swalCustomStyles.color,
+    }).then((result) => {
+      if (result.isConfirmed) {
+        document.getElementById(`backup-${tipo}`).submit();
+      }
+    });
+  }
+
+  function confirmarVaciarDb() {
+    Swal.fire({
+      title: "¿Está absolutamente seguro?",
+      html: "<strong>Esta acción no se puede deshacer.</strong><br>Todos los registros de la base de datos serán eliminados permanentemente.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#dc3545",
+      cancelButtonColor: "#6c757d",
+      confirmButtonText: "Sí, vaciar base de datos",
+      cancelButtonText: "Cancelar",
+      background: swalCustomStyles.background,
+      color: swalCustomStyles.color,
+      focusCancel: true,
+    }).then((result) => {
+      if (result.isConfirmed) {
+        Swal.fire({
+          title: "Vaciando base de datos",
+          html: "Por favor espere...",
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+            document.getElementById("vaciarDbForm").submit();
+          },
+        });
+      }
+    });
+  }
+</script>
+{% endblock %}

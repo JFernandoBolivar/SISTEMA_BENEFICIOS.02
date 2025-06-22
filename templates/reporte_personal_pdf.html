@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+      .container_tabla {
+        font-family: Arial, sans-serif;
+        width: 100%;
+        margin: 0 auto;
+        justify-content: center;
+      }
+      .table {
+        margin-top: 2em;
+        font-size: 1em;
+        width: 100%;
+        border-collapse: collapse;
+        text-align: center;
+        table-layout: fixed;
+      }
+      .table th:first-child,
+      .table td:first-child {
+        width: 4%;
+      }
+      .table th,
+      .table td {
+        border: 1px solid #000;
+        padding: 7px 2px;
+        text-align: center;
+        white-space: normal;
+        word-wrap: break-word;
+      }
+      .table th {
+        background-color: #f2f2f2;
+      }
+
+      .list {
+        text-align: center;
+        margin-top: 1em;
+      }
+      .logos {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+        margin-bottom: 1em;
+      }
+      .logos > p {
+        font-size: 0.6em;
+        margin-left: 0.3em;
+        margin-right: auto;
+        transform: translateY(-2.8em);
+      }
+      .mpj {
+        transform: translateX(-37em);
+        margin-right: auto;
+        left: 0;
+      }
+      .TextPersonal td,
+      .TextPersonal th {
+        font-size: 12px;
+      }
+
+      .hrr {
+        margin-left: auto;
+      }
+      .mpj,
+      .hrr {
+        padding-top: 1.5em;
+        width: 3.5em;
+      }
+      .table tbody tr {
+        page-break-inside: avoid;
+      }
+      @page {
+        margin: 1cm;
+        @bottom-center {
+          content: "Página " counter(page) " de " counter(pages);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container_tabla tabla_pdf">
+      <div class="logos">
+        <p>REPÚBLICA BOLIVARIANA DE VENEZUELA</p>
+        <img
+          src="{{ url_for('static', filename='css/img/logo.png', _external=True) }}"
+          class="mpj"
+        />
+        <img
+          src="{{ url_for('static', filename='css/img/logo2.png', _external=True) }}"
+          class="hrr"
+        />
+      </div>
+      <h1 class="list">Reporte de Movimientos de Personal</h1>
+      {% if nombre or fecha %}
+      <p style="text-align: center">
+        {% if nombre %} <b>Nombre:</b> {{ nombre }} {% endif %} {% if fecha %}
+        <b>Fecha:</b> {{ fecha }} {% endif %}
+      </p>
+      {% endif %}
+      <div class="table-responsive" id="tabla1">
+        <table class="table table-striped table-bordered m-auto">
+          <thead class="table-dark tablaPersonal">
+            <tr>
+              <th>#</th>
+
+              <th scope="col">Nombre del personal</th>
+              <th scope="col">Cedula del personal</th>
+              <th scope="col">Nombre del autorizado</th>
+              <th scope="col">Cedula del autorizado</th>
+              <th scope="col">Usuario que realizo la entrega</th>
+              <th scope="col">Fecha y Hora de la entrega</th>
+            </tr>
+          </thead>
+          <tbody class="TextPersonal">
+            {% for registro in historial %}
+            <tr>
+              <td>{{ loop.index }}</td>
+              <td>
+                {{ registro.Name_personal if registro.Name_personal else ' ' }}
+              </td>
+              <td>
+                {{ registro.cedula_personal if registro.cedula_personal else ' '
+                }}
+              </td>
+              <td>
+                {{registro.Name_autorizado if registro.Name_autorizado else ' '
+                }}
+              </td>
+              <td>
+                {{registro.Cedula_autorizado if registro.Cedula_autorizado else
+                ' '}}
+              </td>
+
+              <td>{{ registro.Name_user }}</td>
+              <td>{{ registro.time_login if registro.time_login else ' '}}</td>
+            </tr>
+
+            {% endfor %} {% if not historial %}
+            <tr>
+              <td colspan="14">No hay datos disponibles</td>
+            </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </body>
+</html>

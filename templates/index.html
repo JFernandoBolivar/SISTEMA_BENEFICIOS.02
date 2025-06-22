@@ -1,0 +1,218 @@
+{% extends "navbar/navUser.html" %} {% block contentt %}
+<div class="ContentVerDatos d-flex justify-content-between align-items-center">
+  <button type="button" class="btn btn-dark deApoyo" data-bs-toggle="modal" data-bs-target="#apoyoModal">
+    Entrega de Apoyo
+  </button>
+  <button id="ver_datos" class="btn btn-dark">Ver Datos</button>
+</div>
+
+{% if mensaje3 %}
+<div class="alert mse" role="alert">
+  <button id="exit">X</button> <i class="bx bx-message-square-x icons"></i>
+  <h2>{{ mensaje3 }}</h2>
+</div>
+{% endif %}
+<div class="container" style="user-select: none">
+  <h1>Buscar Cedula</h1>
+  <p>Escriba la Cedula para verificar si esta en el listado</p>
+  <form method="POST" action="/">
+    <input type="number" name="cedula" class="cedula" required autocapitalize="off" />
+    <button type="submit" id="btn" class="btn btn-dark submit">
+      Verificar
+    </button>
+  </form>
+</div>
+
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+    {% for mensaje in messages %}
+      <div class="alert mse" role="alert">
+        <button id="exit">X</button>
+        <i class="bx bx-message-square-x icons"></i>
+        <h2>{{ mensaje }}</h2>
+      </div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+
+{% if mensaje %}
+<div class="alert" role="alert">
+  <button id="exit">X</button>
+  {% if "exitoso" in mensaje.lower() %}
+  <i class="bx bx-check-circle icons"></i>
+  {% else %}
+  <i class="bx bx-info-circle icons"></i>
+  {% endif %}
+  <h2>{{ mensaje }}</h2>
+  <h4>{{ cedula }}</h4>
+  <p>{{ mensaje2 }}</p>
+  
+  {% if mostrar_boton %}
+  <form action="{{ url_for('consultas.cambiar_estatusComision') }}" method="POST">
+    <input type="hidden" name="cedula" value="{{ cedula }}">
+    <button type="submit" class="btn btn-danger">Permitir entrega</button>
+  </form>
+  {% endif %}
+</div>
+{% endif %} {% if data %}
+<div class="container_tablas">
+  <section class="tabla">
+    <div class="table-responsive" style="max-height: 400px; overflow-y: auto">
+      <table class="table table-striped table-bordered">
+        <thead class="table-dark">
+          <tr>
+            <th scope="col">Cedula</th>
+            <th scope="col">Nombre Completo</th>
+            {% if data.Estatus == 2 %}
+            <th scope="col">Estado</th>
+            {% else %}
+            <th scope="col">Unidad Fisica</th>
+            <th scope="col">Unidad Administrativa</th>
+            {% endif %}
+             <th scope="col">Estatus</th>
+            <th scope="col">Entregado últimos 15 días</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>{{ data.Cedula }}</td>
+            <td>{{ data.Name_Com }}</td>
+            {% if data.Estatus == 2 %}
+            <td>{{ data.ESTADOS  if data.ESTADOS else " "}}</td>
+            
+            {% else %}
+            <td>{{data.Location_Physical if  data.Location_Physical else " " }}</td>
+            <td>{{data.Location_Admin if  data.Location_Admin else " " }}</td>
+            {% endif %}
+            <td>
+             {% if data.Estatus == 2 %}
+             Pasivo
+             {% elif data.Estatus in [10, 11] %}
+             Comisión de Servicio
+             {% else %}
+               Activo
+             {% endif %}
+            </td>
+            <td>{{ "Sí" if data.Entregado_recientemente else 'No' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    {% if not data.Entregado_recientemente %}
+    <div id="formD">
+      <form method="POST" action="/registrar" id="registroForm">
+        <input type="hidden" name="entregado" value="1" />
+        <input type="hidden" name="cedula" value="{{ data.Cedula }}" />
+        <input
+          type="hidden"
+          name="cedula_personal"
+          value="{{ session['cedula'] }}"
+        />
+        <a id="closes" class="btn btn-secondary btnss">Cancelar</a>
+        <button type="button" id="registroExit" class="btn btn-dark btnss">
+          Asignar
+        </button>
+      </form>
+    </div>
+
+    {% else %}
+    <div id="formD">
+      <a id="closes" class="btn btn-secondary btnss">Cancelar</a>
+      <button type="button" id="alert_regist" class="btn btn-dark btnss">
+        Asignar
+      </button>
+    </div>
+    {% endif %}
+  </section>
+</div>
+{% endif %}
+
+<div class="container_data">
+  <section class="datos">
+    <div class="datosexit"><button id="exit2">X</button></div>
+    <h1>Datos</h1>
+    {% if session.get('Super_Admin') == 1 %}
+    <form method="POST" action="/" class="form-fecha">
+      <label for="fecha">Fecha:</label>
+      <input
+        type="date"
+        id="fecha"
+        name="fecha"
+        class="form-control"
+        value="{{ fecha }}"
+      />
+     
+    <label for="tipo_usuario" class="estatusLabel">Estatus:</label>
+<select id="tipo_usuario" name="tipo_usuario" class="form-control estatusSelect">
+  <option value="general" {% if tipo_usuario == 'general' %}selected{% endif %}>General</option>
+  <option value="activos" {% if tipo_usuario == 'activos' %}selected{% endif %}>Activos</option>
+  <option value="pasivos" {% if tipo_usuario == 'pasivos' %}selected{% endif %}>Pasivos</option>
+  <option value="comision_servicios_alert" {% if tipo_usuario == 'comision_servicios_alert' %}selected{% endif %}>C.S Vencido</option>
+  <option value="comision_servicios_2" {% if tipo_usuario == 'comision_servicios_2' %}selected{% endif %}>C.S</option>
+</select>
+      <button type="submit" class="btn btn-dark">Filtrar</button>
+    </form>
+    {% endif %}
+    <article>
+      <p>
+        Total de personas que han recibido la caja: <b>{{ total_recibido }}</b>
+      </p>
+      <p>Total de Personal: <b>{{ total_personas }}</b></p>
+      <p>
+        Total de Personal que faltan por recibir la caja: <b>{{ faltan }}</b>
+      </p>
+    </article>
+    {% if session.get('Super_Admin') == 0 %}
+    
+    {% endif %}
+  </section>
+</div>
+
+
+<!-- DE APOYO -->
+
+<div class="modal fade" id="apoyoModal" tabindex="-1" aria-labelledby="apoyoModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="POST" action="{{ url_for('consultas.registrar_apoyo') }}">
+        <div class="modal-header">
+          <h5 class="modal-title ml-5" id="apoyoModalLabel">Registrar Apoyo</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+         
+         
+          <div class="row">
+            <div class="mb-3 col-md-6 divApoyo ">
+              <label for="ci_autorizado" class="form-label">Cédula del Autorizado</label>
+              <input type="number" class="form-control" id="ci_autorizado" min="10000000" name="ci_autorizado" required autocapitalize="off">
+            </div>
+            <div class="mb-3  col-md-6 divApoyo">
+              <label for="nombre_autorizado" class="form-label">Nombre del Autorizado</label>
+              <input type="text" class="form-control" id="nombre_autorizado" name="nombre_autorizado" required autocapitalize="off">
+            </div>
+           
+          </div>
+          <div class="mb-3 divApoyo">
+            <label for="cantidad" class="form-label">Cantidad de Ayuda</label>
+            <input type="number" class="form-control " id="cantidad" name="cantidad" min="1" required autocapitalize="off">
+          </div>
+        </div>
+        <div class="modal-footer">
+         
+          <button type="submit" class="btn btn-dark EntregaApoyo ">Entregar apoyo</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% if alert %}
+<div class="alert limite" role="alert">
+  <button id="exit">X</button>
+  <i class="bx bx-message-square-x icons"></i>
+  <h2>{{alert }}</h2>
+  <p class="pg-2">{{alert_limite}}</p>
+</div>
+
+{% endif %} {% endblock %}

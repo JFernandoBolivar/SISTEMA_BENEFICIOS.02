@@ -1,0 +1,22 @@
+#exit5 {
+  text-decoration: none;
+  color: black;
+  font-size: 20px;
+  border: 1px solid black;
+  padding: 5px 10px;
+  border-radius: 5px;
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 1000;
+}
+
+.windwsPDF {
+  display: NONE;
+}
+#PDFPersonal {
+  border: 1px #211adf;
+}
+#exit5:hover {
+  background: #ff2f2f;
+}
