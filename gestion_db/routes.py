@@ -251,7 +251,7 @@ def cargar_data():
 @gestion_db_bp.route("/vaciar_db", methods=["POST"])
 @requiere_super_admin
 def vaciar_db():
-    # Usar DictCursor explícitamente para consistencia con el resto del código
+   
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     try:
         # Obtener conteo antes de vaciar (solo tabla personal)
@@ -296,7 +296,7 @@ def generar_backup_excel():
         backup_dir = os.path.join(Config.BACKUP_FOLDER)
         os.makedirs(backup_dir, exist_ok=True)
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = f'backup_db_{timestamp}.xlsx'
+        filename = f'data_benficios_{timestamp}.xlsx'
         filepath = os.path.join(backup_dir, filename)
         
         # Conexión a la base de datos
@@ -400,7 +400,7 @@ def generar_backup_excel():
         
     except Exception as e:
         mysql.connection.rollback()
-        flash(f"Error al generar backup Excel: {str(e)}", "danger")
+        flash(f"Error al generar copia de seguridad en Excel: {str(e)}", "danger")
         return redirect(url_for('gestion_db.gestionar_data'))
     finally:
         if cursor is not None:

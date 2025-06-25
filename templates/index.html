@@ -147,6 +147,7 @@
   <option value="general" {% if tipo_usuario == 'general' %}selected{% endif %}>General</option>
   <option value="activos" {% if tipo_usuario == 'activos' %}selected{% endif %}>Activos</option>
   <option value="pasivos" {% if tipo_usuario == 'pasivos' %}selected{% endif %}>Pasivos</option>
+  <option value="de_apoyo" {% if tipo_usuario == 'de_apoyo' %}selected{% endif %}>Apoyo</option>
   <option value="comision_servicios_alert" {% if tipo_usuario == 'comision_servicios_alert' %}selected{% endif %}>C.S Vencido</option>
   <option value="comision_servicios_2" {% if tipo_usuario == 'comision_servicios_2' %}selected{% endif %}>C.S</option>
 </select>
@@ -154,13 +155,19 @@
     </form>
     {% endif %}
     <article>
+      {% if tipo_usuario == 'de_apoyo' %}
       <p>
-        Total de personas que han recibido la caja: <b>{{ total_recibido }}</b>
+        Total de personas que han recibido apoyo : <b>{{ total_recibido }}</b>
+      </p>
+      {% else %}
+      <p>
+        Total de personas que han recibido el beneficio: <b>{{ total_recibido }}</b>
       </p>
       <p>Total de Personal: <b>{{ total_personas }}</b></p>
       <p>
-        Total de Personal que faltan por recibir la caja: <b>{{ faltan }}</b>
+        Total de Personal que faltan por recibir el beneficio: <b>{{ faltan }}</b>
       </p>
+      {% endif %}
     </article>
     {% if session.get('Super_Admin') == 0 %}
     
@@ -185,7 +192,7 @@
           <div class="row">
             <div class="mb-3 col-md-6 divApoyo ">
               <label for="ci_autorizado" class="form-label">Cédula del Autorizado</label>
-              <input type="number" class="form-control" id="ci_autorizado" min="10000000" name="ci_autorizado" required autocapitalize="off">
+              <input type="number" class="form-control" id="ci_autorizado" min="1000000" name="ci_autorizado" required autocapitalize="off">
             </div>
             <div class="mb-3  col-md-6 divApoyo">
               <label for="nombre_autorizado" class="form-label">Nombre del Autorizado</label>

@@ -15,6 +15,54 @@ from flask import current_app as app
 reportes_bp = Blueprint('reportes', __name__)
 
 
+
+#listado de entrega de apoyo
+@reportes_bp.route("/listado_de_apoyo")
+def listado_de_apoyo():
+    if 'loggedin' not in session:
+        return redirect(url_for('auth.login'))
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+
+    cursor.execute('SELECT * FROM apoyo')
+    registros = cursor.fetchall()
+    
+    
+    cursor.execute('SELECT IFNULL(SUM(cantidad), 0) AS total_cantidad FROM apoyo')
+    total_cantidad = cursor.fetchone()['total_cantidad']
+
+    cursor.close()
+    return render_template(
+        'tabla_apoyo.html',
+        registros=registros,
+        total_cantidad=total_cantidad
+    )
+
+@reportes_bp.route("/listado_apoyo_pdf")
+def listado_apoyo_pdf():
+    if 'loggedin' not in session:
+        return redirect(url_for('auth.login'))
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+
+    cursor.execute('SELECT * FROM apoyo')
+    registros = cursor.fetchall()
+
+    cursor.execute('SELECT IFNULL(SUM(cantidad), 0) AS total_cantidad FROM apoyo')
+    total_cantidad = cursor.fetchone()['total_cantidad']
+
+    cursor.close()
+
+    rendered = render_template(
+        'tabla_apoyo_pdf.html',
+        registros=registros,
+        total_cantidad=total_cantidad
+    )
+    pdf = HTML(string=rendered).write_pdf()
+
+    response = make_response(pdf)
+    response.headers['Content-Type'] = 'application/pdf'
+    response.headers['Content-Disposition'] = 'inline; filename=listado_apoyo.pdf'
+    return response
+
 # listado de entregas
 
 @reportes_bp.route("/listado")

@@ -36,36 +36,39 @@ def get_stats(cursor, fecha=None, tipo_usuario='general'):
                           JOIN personal p ON d.Data_ID = p.Cedula 
                           WHERE p.Estatus = 10'''
         },
-        'general': {
-            'personas': 'SELECT COUNT(*) AS total_personas FROM personal',
-            'recibido':  
-       'SELECT COUNT(*) AS total_recibido FROM delivery d WHERE d.Time_box >= DATE_SUB(CURDATE(), INTERVAL 15 DAY)'
-    
-        }
+        'de_apoyo': {
+            'personas': 'SELECT COUNT(DISTINCT CI_autorizado) AS total_personas FROM apoyo',
+            'recibido': 'SELECT SUM(cantidad) AS total_recibido FROM apoyo WHERE Fecha >= DATE_SUB(CURDATE(), INTERVAL 15 DAY)'
+        },
+         'general': {
+    'personas': 'SELECT COUNT(*) AS total_personas FROM personal',
+    'recibido': 'SELECT COUNT(*) AS total_recibido FROM delivery d WHERE d.Time_box >= DATE_SUB(CURDATE(), INTERVAL 15 DAY)'
+}
     }
     
     query = queries.get(tipo_usuario, queries['general'])
     
-    # Ejecutar consulta para total de personas
     cursor.execute(query['personas'])
-    total_personas = cursor.fetchone()['total_personas']
+    total_personas = cursor.fetchone()['total_personas'] or 0
     
-    # Ejecutar consulta para entregas recibidas con filtro de fecha
     recibido_query = query['recibido']
     if fecha:
         if 'WHERE' in recibido_query:
-            recibido_query += f' AND DATE(d.Time_box) = "{fecha}"'
+            recibido_query += f' AND DATE(Fecha) = "{fecha}"' if tipo_usuario == 'de_apoyo' else f' AND DATE(d.Time_box) = "{fecha}"'
         else:
-            recibido_query = recibido_query.replace(';', '') + f' WHERE DATE(Time_box) = "{fecha}"'
+            recibido_query = recibido_query.replace(';', '') + (f' WHERE DATE(Fecha) = "{fecha}"' if tipo_usuario == 'de_apoyo' else f' WHERE DATE(Time_box) = "{fecha}"')
     
     cursor.execute(recibido_query)
-    total_recibido = cursor.fetchone()['total_recibido']
-    
+    total_recibido = cursor.fetchone()['total_recibido'] or 0
+    total_apoyo = total_recibido if tipo_usuario == 'de_apoyo' else " "
     return {
         'total_personas': total_personas,
         'total_recibido': total_recibido,
-        'faltan': total_personas - total_recibido
+        'total_apoyo':total_apoyo,
+        'faltan': (total_personas or 0)  - (total_recibido or 0)
     }
+    
+    
 
 @consultas_bp.route("/", methods=["GET", "POST"])
 def consult():

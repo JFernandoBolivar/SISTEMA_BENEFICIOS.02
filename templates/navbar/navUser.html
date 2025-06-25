@@ -67,11 +67,6 @@
             </li>
 
             <li>
-              <a class="dropdown-item" href="{{ url_for('reportes.listado') }}"
-                >Listado</a
-              >
-            </li>
-            <li>
               <a
                 class="dropdown-item"
                 href="{{ url_for('gestion_usuarios.reporte_personal') }}"
@@ -125,6 +120,35 @@
                 class="dropdown-item"
                 href="{{url_for('gestion_usuarios.reporte_usuarios')}}"
                 >Historial de Acciones</a
+              >
+            </li>
+          </ul>
+        </li>
+      </ul>
+      <ul class="navbar-nav">
+        <li class="nav-item dropdown">
+          <a
+            class="nav-link dropdown-toggle fs-5"
+            href="#"
+            role="button"
+            data-bs-toggle="dropdown"
+            aria-expanded="false"
+          >
+            Listados
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end text-center bg-dark">
+            <li>
+              <a class="dropdown-item" href="{{ url_for('reportes.listado') }}">
+                Personal</a
+              >
+            </li>
+
+            <li>
+              <a
+                class="dropdown-item"
+                href="{{ url_for('reportes.listado_de_apoyo') }}"
+              >
+                de Apoyo</a
               >
             </li>
           </ul>

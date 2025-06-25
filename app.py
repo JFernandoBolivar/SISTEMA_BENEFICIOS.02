@@ -1,4 +1,4 @@
-# app.py
+
 from flask import Flask
 from config import Config
 from extensions import mysql
