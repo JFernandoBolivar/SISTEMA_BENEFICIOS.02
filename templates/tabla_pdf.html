@@ -79,7 +79,7 @@
         text-align: center;
         white-space: normal;
         word-wrap: break-word;
-        font-size: 5px;
+        font-size: 10px;
       }
       .table th {
         background-color: #f2f2f2;
@@ -206,8 +206,9 @@
               <th scope="col">Registrado</th>
             </tr>
           </thead>
+          <!-- ...existing code arriba... -->
           <tbody>
-            {% for registro in registros %}
+            {% if registros %} {% for registro in registros %}
             <tr>
               <td>{{ loop.index }}</td>
               <td>{{ registro.Cedula }}</td>
@@ -224,36 +225,26 @@
               <td>{{ registro.Location_Physical }}</td>
               <td>{{ registro.Location_Admin }}</td>
               {% endif %}
-
               <td>{{ registro.Time_box }}</td>
               <td>
                 {% if registro.Cedula_Family %} {{ registro.Cedula_Family }} {%
                 elif registro.Cedula_autorizado %} {{ registro.Cedula_autorizado
-                }} {% else %} &nbsp;
-                <!-- Espacio en blanco -->
-                {% endif %}
+                }} {% else %} &nbsp; {% endif %}
               </td>
-
               <td>
                 {% if registro.Name_Family %} {{ registro.Name_Family }} {% elif
                 registro.Nombre_autorizado %} {{ registro.Nombre_autorizado }}
-                {% else %} &nbsp;
-                <!-- Espacio en blanco -->
-                {% endif %}
+                {% else %} &nbsp; {% endif %}
               </td>
               <td>{{ "Si" if registro.Manually else 'No' }}</td>
-              <td>{{"Si" if registro.Lunch else 'No' }}</td>
+              <td>{{ "Si" if registro.Lunch else 'No' }}</td>
               <td>{{ registro.Staff_ID }}</td>
             </tr>
-            {% endfor %} {% if not registros %}
+            {% endfor %} {% else %}
             <tr>
               <td colspan="9">
                 No hay datos disponibles para la fecha seleccionada.
               </td>
-            </tr>
-            {% endfor %} {% if not registros %}
-            <tr>
-              <td colspan="14">No hay datos disponibles</td>
             </tr>
             {% endif %}
           </tbody>
