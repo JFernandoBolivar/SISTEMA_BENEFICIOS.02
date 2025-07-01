@@ -142,9 +142,13 @@ def reporte_personalPDF():
     if 'loggedin' not in session:
         return redirect(url_for('auth.login'))
 
-    nombre = request.args.get('nombre', '').strip()
+    cedula = request.args.get('cedula', '').strip()
     fecha = request.args.get('fecha', '').strip()
-
+    mes = request.args.get('mes', '').strip()      # formato 'YYYY-MM'
+    estatus = request.args.get('estatus', '').strip()  # Nuevo filtro
+    usuario = session.get('username', 'Usuario')
+    fecha_actual = datetime.now().strftime('%d/%m/%Y %H:%M')
+    
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     query = '''
         SELECT * FROM user_history
@@ -153,26 +157,62 @@ def reporte_personalPDF():
     '''
     params = []
 
-    if nombre:
-        query += " AND Name_personal LIKE %s"
-        params.append(f"%{nombre}%")
+    if cedula:
+        query += " AND cedula_personal LIKE %s"
+        params.append(f"%{cedula}%")
     if fecha:
         query += " AND DATE(time_login) = %s"
         params.append(fecha)
+    if mes:
+        anio, mes_num = mes.split('-')
+        query += " AND YEAR(time_login) = %s AND MONTH(time_login) = %s"
+        params.extend([anio, mes_num])
+    if estatus:
+        # Mapear texto a valores de estatus según tu lógica de la plantilla
+        if estatus.lower() == "activo":
+            query += " AND Estatus = %s"
+            params.append(1)
+        elif estatus.lower() == "pasivo":
+            query += " AND Estatus = %s"
+            params.append(2)
+        elif "vigente" in estatus.lower():
+            query += " AND Estatus = %s"
+            params.append(10)
+        elif "vencida" in estatus.lower():
+            query += " AND Estatus IN (%s, %s)"
+            params.extend([9, 11])
 
     cursor.execute(query, params)
     historial = cursor.fetchall()
     cursor.close()
 
     if request.args.get('pdf') == '1':
-        rendered = render_template('reporte_personal_pdf.html', historial=historial, nombre=nombre, fecha=fecha)
+        rendered = render_template(
+            'reporte_personal_pdf.html',
+            historial=historial,
+            cedula=cedula,
+            fecha=fecha,
+            mes=mes,
+            estatus=estatus,
+            usuario=usuario,
+            fecha_actual=fecha_actual
+        )
         pdf = HTML(string=rendered).write_pdf()
         response = make_response(pdf)
         response.headers['Content-Type'] = 'application/pdf'
         response.headers['Content-Disposition'] = 'inline; filename=reporte_personal.pdf'
         return response
 
-    return render_template('reporte_personalPDF.html', historial=historial, nombre=nombre, fecha=fecha)
+    return render_template(
+        'reporte_personalPDF.html',
+        historial=historial,
+        cedula=cedula,
+        fecha=fecha,
+        mes=mes,
+        estatus=estatus,
+        usuario=usuario,
+        fecha_actual=fecha_actual
+    )
 
 @gestion_usuarios_bp.route("/nuevoEmpActivo", methods=["GET", "POST"])
 def NuevoUserActivo():

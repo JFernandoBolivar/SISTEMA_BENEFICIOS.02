@@ -23,12 +23,16 @@
   </form>
 </div>
 
-{% with messages = get_flashed_messages() %}
+{% with messages = get_flashed_messages(with_categories=true) %}
   {% if messages %}
-    {% for mensaje in messages %}
+    {% for category, mensaje in messages %}
       <div class="alert mse" role="alert">
         <button id="exit">X</button>
-        <i class="bx bx-message-square-x icons"></i>
+        {% if category == "success" %}
+          <i class="bx bx-check-circle icons"></i>
+        {% else %}
+          <i class="bx bx-message-square-x icons"></i>
+        {% endif %}
         <h2>{{ mensaje }}</h2>
       </div>
     {% endfor %}
@@ -102,7 +106,7 @@
     <div id="formD">
       <form method="POST" action="/registrar" id="registroForm">
         <input type="hidden" name="entregado" value="1" />
-        <input type="hidden" name="cedula" value="{{ data.Cedula }}" />
+        <input type="hidden" name="cedula" value="{{ data.Cedula }}" /><input type="hidden" id="cedula_titular" name="cedula_titular" value="{{ data.Cedula if data else '' }}">
         <input
           type="hidden"
           name="cedula_personal"

@@ -22,7 +22,6 @@
         justify-content: center;
         font-family: Arial, sans-serif;
       }
-
       a {
         text-decoration: none;
       }
@@ -40,7 +39,8 @@
         margin-right: 0.5em;
         font-weight: 700;
       }
-      .form-fecha > input[type="date"] {
+      .form-fecha > input[type="date"],
+      .form-fecha > input[type="month"] {
         padding: 0.5em;
         border-radius: 5px;
         border: 1px solid #181818;
@@ -112,6 +112,9 @@
       .hrr {
         margin-left: auto;
       }
+      .EXCEL{
+        margin-top: 2em;
+      }
       .mpj,
       .hrr {
         padding-top: 1.5em;
@@ -141,26 +144,52 @@
           class="hrr"
         />
       </div>
-
+      {% if fecha or mes or estatus %}
+      <p style="text-align: end; font-size: 13px">
+        <b>Generado por:</b> {{ usuario }}
+      </p>
+      <p style="text-align: end; font-size: 13px">
+        <b>Fecha de generación:</b> {{ fecha_actual }}
+      </p>
+      {% endif %}
       <h1 class="list">Listado de Personas que han Recibido la Caja</h1>
+
       {% if not fecha %}
+      <!-- Formulario PDF -->
       <form
         method="POST"
         action="{{ url_for('reportes.listado_pdf') }}"
-        class="form-fecha"
+        class="form-fecha EXCEL"
         target="_blank"
+        id="form-pdf"
       >
-        <label for="fecha">Fecha:</label>
-        <input type="date" id="fecha" name="fecha" required />
+        <label for="filtro_pdf">Filtro:</label>
+        <select id="filtro_pdf" name="filtro_pdf" class="dateFiltros" required onchange="toggleFechaMes('pdf')">
+          <option value="dia" selected>Por Día</option>
+          <option value="mes">Por Mes</option>
+        </select>
+        <label for="fecha_pdf" id="label-fecha-pdf">Fecha:</label>
+        <input type="date" id="fecha_pdf" name="fecha" required />
+        <label for="mes_pdf" id="label-mes-pdf" style="display:none;">Mes:</label>
+        <input type="month" id="mes_pdf" name="mes" style="display:none;" />
         <button type="submit">Generar PDF</button>
       </form>
+      <!-- Formulario Excel -->
       <form
         method="POST"
         action="{{ url_for('reportes.listado_excel') }}"
-        class="form-fecha"
+        class="form-fecha EXCEL"
+        id="form-excel"
       >
-        <label for="fecha">Fecha:</label>
-        <input type="date" id="fecha" name="fecha" required />
+        <label for="filtro_excel">Filtro:</label>
+        <select id="filtro_excel" name="filtro_excel" class="dateFiltros" required onchange="toggleFechaMes('excel')">
+          <option value="dia" selected>Por Día</option>
+          <option value="mes">Por Mes</option>
+        </select>
+        <label for="fecha_excel" id="label-fecha-excel">Fecha:</label>
+        <input type="date" id="fecha_excel" name="fecha" required />
+        <label for="mes_excel" id="label-mes-excel" style="display:none;">Mes:</label>
+        <input type="month" id="mes_excel" name="mes" style="display:none;" />
 
         <label for="filtro">Seleccionar filtro:</label>
         <select id="filtro" class="dateFiltros" name="filtro" required>
@@ -169,20 +198,54 @@
           <option value="activo">Por Activos</option>
           <option value="pasivo">Por Pasivos</option>
           <option value="manually">Por Registro Manual</option>
-          <option value="comision_vencida">
-            Por Comisión de Servicio Vencida
-          </option>
-          <option value="comision_vigente">
-            Por Comisión de Servicio Vigente
-          </option>
+          <option value="comision_vencida">Por Comisión de Servicio Vencida</option>
+          <option value="comision_vigente">Por Comisión de Servicio Vigente</option>
           <option value="todos">Data General</option>
         </select>
 
         <button type="submit" class="ml-3">Generar Excel</button>
       </form>
+      <script>
+        function toggleFechaMes(tipo) {
+          let filtro, fecha, labelFecha, mes, labelMes;
+          if (tipo === 'pdf') {
+            filtro = document.getElementById('filtro_pdf').value;
+            fecha = document.getElementById('fecha_pdf');
+            labelFecha = document.getElementById('label-fecha-pdf');
+            mes = document.getElementById('mes_pdf');
+            labelMes = document.getElementById('label-mes-pdf');
+          } else {
+            filtro = document.getElementById('filtro_excel').value;
+            fecha = document.getElementById('fecha_excel');
+            labelFecha = document.getElementById('label-fecha-excel');
+            mes = document.getElementById('mes_excel');
+            labelMes = document.getElementById('label-mes-excel');
+          }
+          fecha.style.display = filtro === 'dia' ? '' : 'none';
+          labelFecha.style.display = filtro === 'dia' ? '' : 'none';
+          mes.style.display = filtro === 'mes' ? '' : 'none';
+          labelMes.style.display = filtro === 'mes' ? '' : 'none';
+          fecha.required = filtro === 'dia';
+          mes.required = filtro === 'mes';
+        }
+      </script>
       {% else %}
-      <p>Fecha: <b>{{ fecha }}</b></p>
-      {% endif %}
+     
+      <p style="text-align: center; font-size: 13px">
+        {% if fecha %}<b>Fecha:</b> {{ fecha }} {% endif %}
+        {% if mes %}<b>Mes:</b> {{ mes }} {% endif %}
+        {% if estatus %}
+          <b>Estatus:</b>
+          {% if estatus == 'activo' %}Activo
+          {% elif estatus == 'pasivo' %}Pasivo
+          {% elif estatus == 'vigente' %}Comisión Vigente
+          {% elif estatus == 'vencida' %}Comisión Vencida
+          {% else %}{{ estatus }}{% endif %}
+        {% endif %}
+      </p>
+    {% endif %}
+      
+
       <div class="table-responsive">
         <table class="table table-striped table-bordered m-auto">
           <thead>
@@ -197,7 +260,6 @@
               <th scope="col">Estado</th>
               <th scope="col">Estatus</th>
               {% endif %}
-
               <th scope="col">Hora de Entrega</th>
               <th scope="col">Cedula del Autorizado</th>
               <th scope="col">Nombre del Autorizado</th>
@@ -206,7 +268,6 @@
               <th scope="col">Registrado</th>
             </tr>
           </thead>
-          <!-- ...existing code arriba... -->
           <tbody>
             {% if registros %} {% for registro in registros %}
             <tr>
@@ -251,6 +312,4 @@
         </table>
       </div>
     </div>
-    <script src="{{url_for('static', filename='js/boxicons.js')}}"></script>
-  </body>
-</html>
+    <script src=

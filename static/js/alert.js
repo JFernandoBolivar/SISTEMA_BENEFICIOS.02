@@ -104,17 +104,17 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       } else if (result.dismiss === Swal.DismissReason.cancel) {
         // Flujo para autorizado
-        const cedula = $("#cedula").val(); // Obtiene la cédula del titular desde un input
+        const cedula = $("#cedula_titular").val(); // Obtiene la cédula del titular desde un input
         fetch(`/obtener_autorizados?cedula=${cedula}`)
           .then((response) => response.json())
           .then((autorizados) => {
-            if (autorizados.error) {
+            if (autorizados.error || autorizados.info) {
               Swal.fire({
                 icon: "error",
                 title: "Oops...",
                 background: "#fff",
                 color: "#000",
-                text: autorizados.error,
+                text: autorizados.error || autorizados.info,
                 showCancelButton: true,
                 confirmButtonText: "Asignar",
                 cancelButtonText: "Cancelar",
@@ -177,7 +177,6 @@ document.addEventListener("DOMContentLoaded", () => {
                               .appendTo(registroForm);
                             return true;
                           } else {
-                            // arreglarlo
                             Swal.showValidationMessage("La cédula debe tener máximo 8 dígitos");
                             return false;
                           }
@@ -246,7 +245,6 @@ document.addEventListener("DOMContentLoaded", () => {
                                   }
                                 });
                               } else if (result.dismiss === Swal.DismissReason.cancel) {
-                                // Si no desea agregar observación, enviar formulario directamente
                                 $("<input>")
                                   .attr({
                                     type: "hidden",
@@ -326,7 +324,6 @@ document.addEventListener("DOMContentLoaded", () => {
                       reverseButtons: true,
                     }).then((result) => {
                       if (result.isConfirmed) {
-                        // Mostrar input para observación
                         Swal.fire({
                           title: "Ingrese la observación:",
                           input: "text",
@@ -362,7 +359,6 @@ document.addEventListener("DOMContentLoaded", () => {
                           }
                         });
                       } else if (result.dismiss === Swal.DismissReason.cancel) {
-                        // Si no desea agregar observación, enviar formulario directamente
                         $("<input>")
                           .attr({
                             type: "hidden",

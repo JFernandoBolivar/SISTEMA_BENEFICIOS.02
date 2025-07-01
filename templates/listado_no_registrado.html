@@ -1,26 +1,65 @@
 {% extends "navbar/navUser.html" %} {% block contentt%}
+<link
+  rel="stylesheet"
+  href="{{url_for('static', filename='css/reporte.css')}}"
+/>
+<link
+  rel="stylesheet"
+  href="{{url_for('static', filename='css/pdf_listados.css')}}"
+/>
 
-<style>
-  .small-select {
-    font-size: 0.875rem; /* Tamaño de fuente más pequeño */
-    padding: 5px 10px; /* Reducir el relleno interno */
-    height: auto;
-    width: auto;
-  }
-</style>
 <div class="container_tabla">
   <div class="header_tabla">
     <button class="exit_tabla">
       <i class="bx bx-log-out"></i><label class="salir">Salir</label>
     </button>
-    <a
-      href="{{ url_for('reportes.listado_no_regist_pdf') }}"
-      class="btn btn-primary"
-      id="downloadPDF1"
-      target="_blank"
+
+    <div class="alert windwsPDF mse" role="alert">
+      <a
+        id="exit"
+        class="btn me-3"
+        href="{{ url_for('reportes.listado_no_registrado') }}"
+        >X</a
+      >
+      <h1 class="fs-3 report mt-1 text-center">Reporte General de Entregas</h1>
+
+      <form
+  method="get"
+  action="{{ url_for('reportes.listado_no_regist_pdf') }}"
+  class="form-fecha mt-3"
+>
+  <div class="row g-2 align-items-center">
+    <div class="col-12 col-md-8">
+      <select name="filtro" class="form-control">
+        <option value="todos" {% if filtro == 'todos' %}selected{% endif %}>Todos los estatus</option>
+        <option value="activos" {% if filtro == 'activos' %}selected{% endif %}>Activos</option>
+        <option value="pasivos" {% if filtro == 'pasivos' %}selected{% endif %}>Pasivos</option>
+        <option value="fuera_pais" {% if filtro == 'fuera_pais' %}selected{% endif %}>Fuera del país</option>
+        <option value="fallecidos" {% if filtro == 'fallecidos' %}selected{% endif %}>Fallecidos</option>
+        <option value="requiere_confirmacion" {% if filtro == 'requiere_confirmacion' %}selected{% endif %}>Se requiere confirmación</option>
+        <option value="suspendidos_tramite" {% if filtro == 'suspendidos_tramite' %}selected{% endif %}>Suspendidos por trámites administrativos</option>
+        <option value="comision_vigente" {% if filtro == 'comision_vigente' %}selected{% endif %}>Comisión de Servicio (vigente)</option>
+        <option value="comision_vencida" {% if filtro == 'comision_vencida' %}selected{% endif %}>Comisión de Servicio (vencida)</option>
+      </select>
+    </div>
+
+    <div class="col-4 col-md-4">
+      <button
+        type="submit"
+        target="_blank"
+        class="btn btn-dark w-100 w-md-auto"
+      >
+        Descargar PDF
+      </button>
+    </div>
+  </div>
+</form>
+    </div>
+    <a class="btn btn-dark" id="PDFPersonal"
       >Descargar <i class="bx bxs-download fs-3"></i
     ></a>
   </div>
+
   <h1 class="fs-3">Listado de Personas que no han Recibido la Caja</h1>
   <div class="contentBusc">
     <button id="search">

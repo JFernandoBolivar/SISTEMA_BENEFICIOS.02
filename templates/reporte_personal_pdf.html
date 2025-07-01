@@ -93,13 +93,27 @@
           class="hrr"
         />
       </div>
-      <h1 class="list">Reporte de Movimientos de Personal</h1>
-      {% if nombre or fecha %}
+      <p style="text-align: end; font-size: 13px">
+        <b>Generado por:</b> {{ usuario }}
+      </p>
+      <p style="text-align: end; font-size: 13px">
+        <b>Fecha de generación:</b> {{ fecha_actual }}
+      </p>
+      <h1 class="list">Listado de beneficios entregados</h1>
+      {% if cedula or fecha or mes or estatus %}
       <p style="text-align: center">
-        {% if nombre %} <b>Nombre:</b> {{ nombre }} {% endif %} {% if fecha %}
-        <b>Fecha:</b> {{ fecha }} {% endif %}
+        {% if cedula %}<b>Cédula:</b> {{ cedula }} {% endif %} {% if fecha %}<b
+          >Fecha:</b
+        >
+        {{ fecha }} {% endif %} {% if mes %}<b>Mes:</b> {{ mes }} {% endif %} {%
+        if estatus %}<b>Estatus:</b>
+        {% if estatus == 'activo' %}Activo {% elif estatus == 'pasivo' %}Pasivo
+        {% elif estatus == 'vigente' %}Comisión Vigente {% elif estatus ==
+        'vencida' %}Comisión Vencida {% else %}{{ estatus }}{% endif %} {% endif
+        %}
       </p>
       {% endif %}
+
       <div class="table-responsive" id="tabla1">
         <table class="table table-striped table-bordered m-auto">
           <thead class="table-dark tablaPersonal">
@@ -108,10 +122,12 @@
 
               <th scope="col">Nombre del personal</th>
               <th scope="col">Cedula del personal</th>
+              <th scope="col">Estatus</th>
+              <th scope="col">Fecha y Hora de la entrega</th>
+              <th scope="col">Cedula del usuario que realizo la entrega</th>
+              <th scope="col">Nombre de usuario que realizo la entrega</th>
               <th scope="col">Nombre del autorizado</th>
               <th scope="col">Cedula del autorizado</th>
-              <th scope="col">Usuario que realizo la entrega</th>
-              <th scope="col">Fecha y Hora de la entrega</th>
             </tr>
           </thead>
           <tbody class="TextPersonal">
@@ -126,6 +142,16 @@
                 }}
               </td>
               <td>
+                {% if registro.Estatus == 2 %} Pasivo {% elif registro.Estatus
+                == 10 %} Comisión de Servicio Vigente {% elif registro.Estatus
+                in [9, 11] %} Comisión de Servicio Vencida {% else %} Activo {%
+                endif %}
+              </td>
+
+              <td>{{ registro.time_login if registro.time_login else ' '}}</td>
+              <td>{{ registro.cedula }}</td>
+              <td>{{ registro.Name_user }}</td>
+              <td>
                 {{registro.Name_autorizado if registro.Name_autorizado else ' '
                 }}
               </td>
@@ -133,9 +159,6 @@
                 {{registro.Cedula_autorizado if registro.Cedula_autorizado else
                 ' '}}
               </td>
-
-              <td>{{ registro.Name_user }}</td>
-              <td>{{ registro.time_login if registro.time_login else ' '}}</td>
             </tr>
 
             {% endfor %} {% if not historial %}

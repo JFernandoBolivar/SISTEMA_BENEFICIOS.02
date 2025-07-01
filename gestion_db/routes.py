@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, session, send_file, flash, get_flashed_messages
+from flask import Blueprint, render_template, request, redirect, url_for, session, send_file, flash, get_flashed_messages,jsonify
 import MySQLdb.cursors
 import pandas as pd
 from datetime import datetime
@@ -145,6 +145,10 @@ def cargar_excel_a_db(file):
 @gestion_db_bp.route("/cargar_data", methods=["POST", "GET"])
 @requiere_super_admin
 def cargar_data():
+    if request.method == "GET":
+        # Solo renderiza la página, NO flashes aquí
+        return redirect(url_for('gestion_db.gestionar_data'))
+
     cursor = None
     try:
         if 'file' not in request.files or request.files['file'].filename == '':
@@ -205,7 +209,7 @@ def cargar_data():
                 cedula_aut = str(row['Cedula_autorizado']).strip()
                 nombre_aut = str(row['Nombre_autorizado']).strip()
                 
-                if cedula_aut and cedula_aut != 'nan' and nombre_aut and nombre_aut != 'nan':
+                if cedula_aut and cedula_aut.lower() != 'nan' and nombre_aut and nombre_aut.lower() != 'nan':
                     cursor.execute('''
                         SELECT ID FROM autorizados 
                         WHERE Cedula = %s AND beneficiado = %s
@@ -423,3 +427,149 @@ def backup_excel_route():
 def gestionar_data():
     messages = get_flashed_messages(with_categories=True)
     return render_template("gestionar_data.html", messages=messages)
+
+
+import math
+
+@gestion_db_bp.route("/carga_history", methods=["GET", "POST"])
+def carga_history():
+    if request.method == "GET":
+        return render_template("carga_history.html")
+    cursor = None
+    try:
+        if 'file' not in request.files or request.files['file'].filename == '':
+            return jsonify({"error": "Debe seleccionar un archivo Excel válido"}), 400
+
+        file = request.files['file']
+        if not file.filename.lower().endswith('.xlsx'):
+            return jsonify({"error": "El archivo debe tener extensión .xlsx"}), 400
+
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        df = pd.read_excel(file)
+
+        # Elimina la columna '#' si existe
+        if '#' in df.columns:
+            df = df.drop(columns=['#'])
+
+        columnas_requeridas = [
+            'cedula', 'Name_user', 'Name_personal', 'cedula_personal',
+            'Name_autorizado', 'Cedula_autorizado', 'action',
+            'time_login', 'time_finish',"Estatus"
+        ]
+        if not all(col in df.columns for col in columnas_requeridas):
+            return jsonify({"error": "El archivo no tiene la estructura esperada"}), 400
+
+        # Validar que no haya cedula vacía
+        if df['cedula'].isnull().any():
+            return jsonify({"error": "Hay filas con cedula vacía"}), 400
+
+        insertados = 0
+
+        for _, row in df.iterrows():
+            time_login = pd.to_datetime(row['time_login']) if not pd.isnull(row['time_login']) else None
+            time_finish = pd.to_datetime(row['time_finish']) if not pd.isnull(row['time_finish']) else None
+
+            action_text = f"marco como entregado a: {row['action']}"
+            values = [
+                row['cedula'],
+                row['Name_user'],
+                row['Name_personal'],
+                row['cedula_personal'],
+                row['Name_autorizado'],
+                row['Cedula_autorizado'],
+                action_text,
+                time_login,
+                time_finish,
+               row['Estatus']
+            ]
+            values = [None if (isinstance(v, float) and math.isnan(v)) else v for v in values]
+
+            cursor.execute('''
+                INSERT INTO user_history (
+                    cedula, Name_user, Name_personal, cedula_personal,
+                    Name_autorizado, Cedula_autorizado, action,
+                    time_login, time_finish, Estatus
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ''', values)
+            insertados += 1
+
+        mysql.connection.commit()
+        return jsonify({
+            "mensaje": "Datos cargados exitosamente",
+            "insertados": insertados
+        }), 200
+
+    except pd.errors.EmptyDataError:
+        return jsonify({"error": "El archivo Excel está vacío"}), 400
+    except Exception as e:
+        mysql.connection.rollback()
+        return jsonify({"error": f"Error al procesar el archivo: {str(e)}"}), 500
+    finally:
+        if cursor is not None:
+            cursor.close()
+            
+            
+            
+@gestion_db_bp.route("/carga_delivery", methods=["GET", "POST"])
+def carga_delivery():
+    if request.method == "GET":
+        return render_template("carga_delivery.html")
+    cursor = None
+    try:
+        if 'file' not in request.files or request.files['file'].filename == '':
+            return jsonify({"error": "Debe seleccionar un archivo Excel válido"}), 400
+
+        file = request.files['file']
+        if not file.filename.lower().endswith('.xlsx'):
+            return jsonify({"error": "El archivo debe tener extensión .xlsx"}), 400
+
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        df = pd.read_excel(file)
+
+        # Elimina la columna '#' si existe
+        if '#' in df.columns:
+            df = df.drop(columns=['#'])
+
+        columnas_requeridas = [
+            'Time_box', 'Data_ID', 'Staff_ID', 'Observation', 'Lunch'
+        ]
+        if not all(col in df.columns for col in columnas_requeridas):
+            return jsonify({"error": "El archivo no tiene la estructura esperada"}), 400
+
+        # Validar que no haya Data_ID vacío
+        if df['Data_ID'].isnull().any():
+            return jsonify({"error": "Hay filas con Data_ID vacío"}), 400
+
+        insertados = 0
+
+        for _, row in df.iterrows():
+            # Convertir Time_box a datetime si es necesario
+            time_box = pd.to_datetime(row['Time_box']) if not pd.isnull(row['Time_box']) else None
+            values = [
+                time_box,
+                int(row['Data_ID']) if not pd.isnull(row['Data_ID']) else None,
+                int(row['Staff_ID']) if not pd.isnull(row['Staff_ID']) else None,
+                str(row['Observation']) if not pd.isnull(row['Observation']) else None,
+                int(row['Lunch']) if not pd.isnull(row['Lunch']) else 0
+            ]
+            cursor.execute('''
+                INSERT INTO delivery (
+                    Time_box, Data_ID, Staff_ID, Observation, Lunch
+                ) VALUES (%s, %s, %s, %s, %s)
+            ''', values)
+            insertados += 1
+
+        mysql.connection.commit()
+        return jsonify({
+            "mensaje": "Datos cargados exitosamente",
+            "insertados": insertados
+        }), 200
+
+    except pd.errors.EmptyDataError:
+        return jsonify({"error": "El archivo Excel está vacío"}), 400
+    except Exception as e:
+        mysql.connection.rollback()
+        return jsonify({"error": f"Error al procesar el archivo: {str(e)}"}), 500
+    finally:
+        if cursor is not None:
+            cursor.close()

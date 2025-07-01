@@ -190,18 +190,17 @@ def registrar():
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     
     try:
-        # Validar autorizado único en todo el sistema
-        if CIFamily:
-            cursor.execute('SELECT COUNT(*) AS total FROM autorizados WHERE Cedula = %s', (CIFamily,))
-            if cursor.fetchone()['total'] > 0:
-                raise Exception("La cédula del autorizado ya está registrada en el sistema")
-
         # Buscar titular
         cursor.execute('SELECT * FROM personal WHERE Cedula = %s', (cedula,))
         titular = cursor.fetchone()
-        
         if not titular:
             raise Exception("La cédula no se encuentra en la tabla personal")
+
+        # Validar autorizado único solo si el titular es pasivo (estatus == 2)
+        if titular['Estatus'] == 2 and CIFamily:
+            cursor.execute('SELECT COUNT(*) AS total FROM autorizados WHERE Cedula = %s', (CIFamily,))
+            if cursor.fetchone()['total'] > 0:
+                raise Exception("La cédula del autorizado ya está asignada a un beneficiario")
 
         # Verificar entregas recientes
         cursor.execute('''
@@ -215,7 +214,7 @@ def registrar():
 
         # Registrar entrega
         observacion = request.form.get('observacion', '').upper()
-        nameFamily = request.form.get('nombrefamiliar', '').upper()
+        nameFamily = request.form.get('nombrefamiliar', '').strip().upper()
         hora_entrega = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         
         cursor.execute('''
@@ -223,36 +222,57 @@ def registrar():
             VALUES (%s, %s, %s, %s, %s)
         ''', (hora_entrega, cedula_personal, observacion, titular['Cedula'], lunch))
 
-        # Registrar autorizado si corresponde
-        if titular['Estatus'] == 2 and CIFamily and nameFamily:
+        # Registrar autorizado si corresponde y guardar en historial con datos del autorizado
+        if CIFamily and nameFamily:
             cursor.execute('''
                 INSERT INTO autorizados (beneficiado, Nombre, Cedula)
                 VALUES (%s, %s, %s)
             ''', (titular['Cedula'], nameFamily, CIFamily))
 
-        # Registrar en historial 
-        cursor.execute('''
-            INSERT INTO user_history (
-                cedula, 
-                Name_user, 
-                action, 
-                time_login,
-                cedula_personal,
-                Name_personal,
-                Cedula_autorizado,
-                Name_autorizado
-            ) 
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-        ''', (
-            session['cedula'],
-            session['username'],
-            f'Marco como entregado el beneficio a {titular['Cedula']}',
-            datetime.now(),
-            titular['Cedula'],
-            titular['Name_Com'],
-            CIFamily if CIFamily else None,
-            nameFamily if nameFamily else None
-        ))
+            cursor.execute('''
+                INSERT INTO user_history (
+                    cedula, 
+                    Name_user, 
+                    action, 
+                    time_login,
+                    cedula_personal,
+                    Name_personal,
+                    Cedula_autorizado,
+                    Name_autorizado
+                ) 
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            ''', (
+                session['cedula'],
+                session['username'],
+                f'Marco como entregado el beneficio a {titular["Cedula"]} (Autorizado)',
+                datetime.now(),
+                titular['Cedula'],
+                titular['Name_Com'],
+                CIFamily,
+                nameFamily
+            ))
+        else:
+            # Registrar en historial solo para titular
+            cursor.execute('''
+                INSERT INTO user_history (
+                    cedula, 
+                    Name_user, 
+                    action, 
+                    time_login,
+                    cedula_personal,
+                    Name_personal,
+                    Cedula_autorizado,
+                    Name_autorizado
+                ) 
+                VALUES (%s, %s, %s, %s, %s, %s, NULL, NULL)
+            ''', (
+                session['cedula'],
+                session['username'],
+                f'Marco como entregado el beneficio a {titular["Cedula"]}',
+                datetime.now(),
+                titular['Cedula'],
+                titular['Name_Com']
+            ))
         
         mysql.connection.commit()
         stats = get_stats(cursor, fecha)
@@ -276,6 +296,47 @@ def registrar():
     finally:
         cursor.close()
 
+@consultas_bp.route("/obtener_autorizados", methods=["GET"])
+def obtener_autorizados():
+    print("Parámetros recibidos:", request.args)
+    if 'loggedin' not in session:
+        return jsonify({"error": "No autorizado"})
+
+    cedula_titular = request.args.get('cedula', '').strip()
+    if not cedula_titular:
+        return jsonify({"error": "Cédula del titular no proporcionada"})
+
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    try:
+        # Siempre pasar una tupla, aunque sea un solo valor
+        cursor.execute(
+            'SELECT Estatus FROM personal WHERE Cedula = %s',
+            (cedula_titular,)
+        )
+        titular = cursor.fetchone()
+        if not titular:
+            return jsonify({"error": "Titular no encontrado"})
+
+        cursor.execute(
+            'SELECT Cedula, Nombre FROM autorizados WHERE beneficiado = %s',
+            (cedula_titular,)
+        )
+        autorizados = cursor.fetchall()
+        if not autorizados:
+            return jsonify({"info": "Sin autorizados registrados"})
+
+        return jsonify([
+            {
+                "Cedula_autorizado": a['Cedula'],
+                "Nombre_autorizado": a['Nombre'],
+                "estatus": titular['Estatus']
+            } for a in autorizados
+        ])
+    except Exception as e:
+        print("Error en obtener_autorizados:", e)
+        return jsonify({"error": f"Error al obtener autorizados: {str(e)}"})
+    finally:
+        cursor.close()
 
 @consultas_bp.route("/registrar_apoyo", methods=["GET", "POST"])
 def registrar_apoyo():
@@ -373,48 +434,3 @@ def cambiar_estatus():
     cursor.close()
     return render_template('cambiar_estatus.html', usuarios=usuarios, total_personas=total_personas)
 
-@consultas_bp.route("/obtener_autorizados", methods=["GET"])
-def obtener_autorizados():
-    if 'loggedin' not in session:
-        return jsonify({"error": "No autorizado"}), 403
-
-    cedula_titular = request.args.get('cedula')
-    if not cedula_titular:
-        return jsonify({"error": "Cédula del titular no proporcionada"}), 400
-
-    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    
-    try:
-        # Obtener estatus del titular
-        cursor.execute('''
-            SELECT Estatus 
-            FROM personal 
-            WHERE Cedula = %s
-        ''', (cedula_titular,))
-        titular = cursor.fetchone()
-        
-        if not titular:
-            return jsonify({"error": "Titular no encontrado"}), 404
-        
-        # Obtener autorizados usando Cedula como referencia
-        cursor.execute('''
-            SELECT Cedula, Nombre
-            FROM autorizados
-            WHERE beneficiado = %s
-        ''', (cedula_titular,))
-        autorizados = cursor.fetchall()
-        
-        if not autorizados:
-            return jsonify({"info": "Sin autorizados registrados"})
-        
-        # Construir respuesta
-        return jsonify([{
-            "Cedula_autorizado": a['Cedula'],
-            "Nombre_autorizado": a['Nombre'],
-            "estatus": titular['Estatus']
-        } for a in autorizados])
-        
-    except Exception as e:
-        return jsonify({"error": f"Error al obtener autorizados: {str(e)}"}), 500
-    finally:
-        cursor.close()

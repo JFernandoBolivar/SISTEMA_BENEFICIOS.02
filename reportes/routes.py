@@ -41,20 +41,31 @@ def listado_de_apoyo():
 def listado_apoyo_pdf():
     if 'loggedin' not in session:
         return redirect(url_for('auth.login'))
+    mes = request.args.get('mes', '').strip()  
+    usuario = session.get('username', 'Usuario')
+    fecha_actual = datetime.now().strftime('%d/%m/%Y %H:%M')
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
-    cursor.execute('SELECT * FROM apoyo')
-    registros = cursor.fetchall()
-
-    cursor.execute('SELECT IFNULL(SUM(cantidad), 0) AS total_cantidad FROM apoyo')
-    total_cantidad = cursor.fetchone()['total_cantidad']
+    if mes:
+        anio, mes_num = mes.split('-')
+        cursor.execute('SELECT * FROM apoyo WHERE YEAR(Fecha) = %s AND MONTH(Fecha) = %s', (anio, mes_num))
+        registros = cursor.fetchall()
+        cursor.execute('SELECT IFNULL(SUM(cantidad), 0) AS total_cantidad FROM apoyo WHERE YEAR(Fecha) = %s AND MONTH(Fecha) = %s', (anio, mes_num))
+        total_cantidad = cursor.fetchone()['total_cantidad']
+    else:
+        cursor.execute('SELECT * FROM apoyo')
+        registros = cursor.fetchall()
+        cursor.execute('SELECT IFNULL(SUM(cantidad), 0) AS total_cantidad FROM apoyo')
+        total_cantidad = cursor.fetchone()['total_cantidad']
 
     cursor.close()
 
     rendered = render_template(
         'tabla_apoyo_pdf.html',
         registros=registros,
-        total_cantidad=total_cantidad
+        total_cantidad=total_cantidad,
+        mes=mes,usuario=usuario,
+        fecha_actual=fecha_actual
     )
     pdf = HTML(string=rendered).write_pdf()
 
@@ -62,7 +73,6 @@ def listado_apoyo_pdf():
     response.headers['Content-Type'] = 'application/pdf'
     response.headers['Content-Disposition'] = 'inline; filename=listado_apoyo.pdf'
     return response
-
 # listado de entregas
 
 @reportes_bp.route("/listado")
@@ -95,24 +105,52 @@ def listado():
 @reportes_bp.route("/listado_pdf", methods=["GET", "POST"])
 def listado_pdf():
     if request.method == "POST":
-        fecha = request.form['fecha']
+        filtro = request.form.get('filtro_pdf', 'dia')
+        usuario = session.get('username', 'Usuario')
+        fecha_actual = datetime.now().strftime('%d/%m/%Y %H:%M')
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-        cursor.execute('''
-            SELECT d.ID, d.Time_box, d.Staff_ID, d.Observation, d.Lunch,
-                   personal.Cedula, personal.Name_Com, personal.manually, 
-                   personal.Location_Admin, personal.Estatus, personal.ESTADOS, personal.Location_Physical,
-                   autorizados.Nombre AS Nombre_autorizado, autorizados.Cedula AS Cedula_autorizado
-            FROM delivery d
-            JOIN personal ON d.Data_ID = personal.Cedula
-            LEFT JOIN autorizados ON personal.ID = autorizados.beneficiado
-            WHERE DATE(d.Time_box) = %s
-        ''', (fecha,))
-        registros = cursor.fetchall()
-        cursor.execute('SELECT COUNT(*) AS total_recibido FROM delivery WHERE DATE(Time_box) = %s', (fecha,))
-        total_recibido = cursor.fetchone()['total_recibido']
-        cursor.close()
+        registros = []
+        total_recibido = 0
 
-        rendered = render_template('tabla_pdf.html', registros=registros, total_recibido=total_recibido, fecha=fecha)
+        if filtro == 'mes':
+            mes = request.form.get('mes', '')
+            if not mes:
+                return render_template('tabla_pdf.html', registros=[], total_recibido=0, fecha='')
+            anio, mes_num = mes.split('-')
+            cursor.execute('''
+                SELECT d.ID, d.Time_box, d.Staff_ID, d.Observation, d.Lunch,
+                       personal.Cedula, personal.Name_Com, personal.manually, 
+                       personal.Location_Admin, personal.Estatus, personal.ESTADOS, personal.Location_Physical,
+                       autorizados.Nombre AS Nombre_autorizado, autorizados.Cedula AS Cedula_autorizado
+                FROM delivery d
+                JOIN personal ON d.Data_ID = personal.Cedula
+                LEFT JOIN autorizados ON personal.ID = autorizados.beneficiado
+                WHERE YEAR(d.Time_box) = %s AND MONTH(d.Time_box) = %s
+            ''', (anio, mes_num))
+            registros = cursor.fetchall()
+            cursor.execute('SELECT COUNT(*) AS total_recibido FROM delivery WHERE YEAR(Time_box) = %s AND MONTH(Time_box) = %s', (anio, mes_num))
+            total_recibido = cursor.fetchone()['total_recibido']
+            fecha = mes  # Para mostrar en el PDF
+        else:
+            fecha = request.form.get('fecha', '')
+            if not fecha:
+                return render_template('tabla_pdf.html', registros=[], total_recibido=0, fecha='')
+            cursor.execute('''
+                SELECT d.ID, d.Time_box, d.Staff_ID, d.Observation, d.Lunch,
+                       personal.Cedula, personal.Name_Com, personal.manually, 
+                       personal.Location_Admin, personal.Estatus, personal.ESTADOS, personal.Location_Physical,
+                       autorizados.Nombre AS Nombre_autorizado, autorizados.Cedula AS Cedula_autorizado
+                FROM delivery d
+                JOIN personal ON d.Data_ID = personal.Cedula
+                LEFT JOIN autorizados ON personal.ID = autorizados.beneficiado
+                WHERE DATE(d.Time_box) = %s
+            ''', (fecha,))
+            registros = cursor.fetchall()
+            cursor.execute('SELECT COUNT(*) AS total_recibido FROM delivery WHERE DATE(Time_box) = %s', (fecha,))
+            total_recibido = cursor.fetchone()['total_recibido']
+
+        cursor.close()
+        rendered = render_template('tabla_pdf.html', registros=registros, total_recibido=total_recibido, fecha=fecha,usuario=usuario,fecha_actual=fecha_actual)
         pdf = HTML(string=rendered).write_pdf()
 
         response = make_response(pdf)
@@ -127,10 +165,27 @@ def listado_pdf():
 @reportes_bp.route("/listado_excel", methods=["GET", "POST"])
 def listado_excel():
     if request.method == "POST":
-        fecha = request.form['fecha']
+        filtro_pdf = request.form.get('filtro_pdf', 'dia')  # 'dia' o 'mes'
         filtro = request.form.get('filtro', 'todos')
 
-        query = '''
+        # Determinar si es por día o por mes
+        if filtro_pdf == 'mes':
+            mes = request.form.get('mes', '')
+            if not mes:
+                return render_template('tabla_pdf.html', registros=[], total_recibido=0, fecha='')
+            anio, mes_num = mes.split('-')
+            where_fecha = "YEAR(Time_box) = %s AND MONTH(Time_box) = %s"
+            where_fecha_query = "YEAR(Time_box) = %s AND MONTH(Time_box) = %s"
+            fecha_params = (anio, mes_num)
+        else:
+            fecha = request.form.get('fecha', '')
+            if not fecha:
+                return render_template('tabla_pdf.html', registros=[], total_recibido=0, fecha='')
+            where_fecha = "DATE(d.Time_box) = %s"
+            where_fecha_query = "DATE(Time_box) = %s"
+            fecha_params = (fecha,)
+
+        query = f'''
             SELECT d.ID, d.Time_box, d.Staff_ID, d.Observation, d.Lunch,
                    personal.Cedula, personal.Name_Com, personal.manually, 
                    personal.Location_Admin, personal.Estatus, personal.ESTADOS, personal.Location_Physical,
@@ -138,7 +193,7 @@ def listado_excel():
             FROM delivery d
             JOIN personal ON d.Data_ID = personal.Cedula
             LEFT JOIN autorizados ON personal.Cedula = autorizados.beneficiado
-            WHERE DATE(d.Time_box) = %s
+            WHERE {where_fecha}
         '''
         if filtro == 'autorizados':
             query += ' AND autorizados.ID IS NOT NULL'
@@ -164,9 +219,10 @@ def listado_excel():
         query += ' ORDER BY personal.ESTADOS ASC, personal.Location_Physical ASC, personal.Location_Admin ASC'
 
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-        cursor.execute(query, (fecha,))
+        cursor.execute(query, fecha_params)
         registros = cursor.fetchall()
-        cursor.execute('SELECT COUNT(*) AS total_recibido FROM delivery WHERE DATE(Time_box) = %s', (fecha,))
+        # Aquí la consulta de conteo SIN el alias d.
+        cursor.execute(f'SELECT COUNT(*) AS total_recibido FROM delivery WHERE {where_fecha_query}', fecha_params)
         total_recibido = cursor.fetchone()['total_recibido']
         cursor.close()
 
@@ -311,6 +367,8 @@ def listado_no_registrado():
 @reportes_bp.route("/listado_no_regist_pdf", methods=["GET", "POST"])
 def listado_no_regist_pdf():
     filtro = request.args.get('filtro', 'todos')
+    usuario = session.get('username', 'Usuario')
+    fecha_actual = datetime.now().strftime('%d/%m/%Y %H:%M')
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     
     query = '''
@@ -369,7 +427,8 @@ def listado_no_regist_pdf():
     cursor.close()
     
     rendered = render_template('tabla_no_regist_pdf.html', registros=registros, 
-                              total_no_entregados=total_no_entregados, filtro=filtro)
+                              total_no_entregados=total_no_entregados, filtro=filtro,usuario=usuario,
+        fecha_actual=fecha_actual)
     pdf = HTML(string=rendered).write_pdf()
 
     response = make_response(pdf)
@@ -515,23 +574,22 @@ def reporte():
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
-    # Consulta principal de entregas
+    # Consulta principal de entregas desde user_history
     query = '''
-        SELECT DATE(Time_box) as fecha,
-           SUM(CASE WHEN personal.Estatus = 1 THEN 1 ELSE 0 END) as total_activos,
-           SUM(CASE WHEN personal.Estatus = 2 THEN 1 ELSE 0 END) as total_pasivos,
-           SUM(CASE WHEN personal.Estatus  IN (9, 11)  THEN 1 ELSE 0 END) as total_comision_vencida,
-           SUM(CASE WHEN personal.Estatus = 10 THEN 1 ELSE 0 END) as total_comision_vigente,
+        SELECT DATE(time_login) as fecha,
+           SUM(CASE WHEN Estatus = 1 THEN 1 ELSE 0 END) as total_activos,
+           SUM(CASE WHEN Estatus = 2 THEN 1 ELSE 0 END) as total_pasivos,
+           SUM(CASE WHEN Estatus IN (9, 11) THEN 1 ELSE 0 END) as total_comision_vencida,
+           SUM(CASE WHEN Estatus = 10 THEN 1 ELSE 0 END) as total_comision_vigente,
            COUNT(*) as total_entregas
-    FROM delivery
-    JOIN personal ON delivery.Data_ID = personal.Cedula
+        FROM user_history
     '''
     params = []
     where = ""
     if mes and anio:
-        where = " WHERE MONTH(Time_box) = %s AND YEAR(Time_box) = %s"
+        where = " WHERE MONTH(time_login) = %s AND YEAR(time_login) = %s"
         params.extend([mes, anio])
-    query += where + " GROUP BY DATE(Time_box)"
+    query += where + " GROUP BY DATE(time_login)"
 
     cursor.execute(query, params)
     reportes = cursor.fetchall()
@@ -584,43 +642,29 @@ def reporte():
 
 # pdf para los reportes
 
-
 @reportes_bp.route("/reporte_pdf", methods=["GET", "POST"])
 def reporte_pdf():
-    # Puedes obtener mes y año por GET o POST según tu formulario
-    mes = request.values.get('mes')
-    anio = request.values.get('anio')
-
+    usuario = session.get('username', 'Usuario')
+    fecha_actual = datetime.now().strftime('%d/%m/%Y %H:%M')
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
-    # Consulta principal de entregas
+    # Consulta principal de entregas desde user_history (sin filtro de mes ni año)
     query = '''
-        SELECT DATE(Time_box) as fecha,
-               SUM(CASE WHEN personal.Estatus = 1 THEN 1 ELSE 0 END) as total_activos,
-               SUM(CASE WHEN personal.Estatus = 2 THEN 1 ELSE 0 END) as total_pasivos,
-               SUM(CASE WHEN personal.Estatus = 10 THEN 1 ELSE 0 END) as total_comision_vigente,
-               SUM(CASE WHEN personal.Estatus = 9 THEN 1 ELSE 0 END) as total_comision_vencida,
+        SELECT DATE(time_login) as fecha,
+               SUM(CASE WHEN Estatus = 1 THEN 1 ELSE 0 END) as total_activos,
+               SUM(CASE WHEN Estatus = 2 THEN 1 ELSE 0 END) as total_pasivos,
+               SUM(CASE WHEN Estatus = 10 THEN 1 ELSE 0 END) as total_comision_vigente,
+               SUM(CASE WHEN Estatus IN (9, 11) THEN 1 ELSE 0 END) as total_comision_vencida,
                COUNT(*) as total_entregas
-        FROM delivery
-        JOIN personal ON delivery.Data_ID = personal.Cedula
+        FROM user_history
+        GROUP BY DATE(time_login)
     '''
-    params = []
-    if mes and anio:
-        query += " WHERE MONTH(Time_box) = %s AND YEAR(Time_box) = %s"
-        params.extend([mes, anio])
-    query += " GROUP BY DATE(Time_box)"
-
-    cursor.execute(query, params)
+    cursor.execute(query)
     reportes = cursor.fetchall()
 
-    # Consulta de entregas de apoyo agrupadas por fecha
-    apoyo_query = "SELECT DATE(Fecha) as fecha, SUM(cantidad) as total_apoyo FROM apoyo"
-    apoyo_params = []
-    if mes and anio:
-        apoyo_query += " WHERE MONTH(Fecha) = %s AND YEAR(Fecha) = %s"
-        apoyo_params.extend([mes, anio])
-    apoyo_query += " GROUP BY DATE(Fecha)"
-    cursor.execute(apoyo_query, apoyo_params)
+    # Consulta de entregas de apoyo agrupadas por fecha (sin filtro de mes ni año)
+    apoyo_query = "SELECT DATE(Fecha) as fecha, SUM(cantidad) as total_apoyo FROM apoyo GROUP BY DATE(Fecha)"
+    cursor.execute(apoyo_query)
     apoyos = cursor.fetchall()
 
     apoyo_dict = {str(a['fecha']): a['total_apoyo'] or 0 for a in apoyos}
@@ -656,8 +700,8 @@ def reporte_pdf():
         total_comision_vencida=total_comision_vencida,
         total_apoyo=total_apoyo,
         total_entregas_con_apoyo=total_entregas_con_apoyo,
-        mes=mes,
-        anio=anio
+        usuario=usuario,
+        fecha_actual=fecha_actual,
     )
     pdf = HTML(string=rendered).write_pdf()
 

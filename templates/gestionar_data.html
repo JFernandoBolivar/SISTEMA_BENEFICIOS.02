@@ -1,136 +1,4 @@
 {% extends "navbar/navUser.html" %} {% block contentt %}
-<div class="container_tabla mt-4">
-  <div class="header_tabla">
-    <button class="exit_tabla" aria-label="Salir del módulo">
-      <i class="bx bx-log-out" aria-hidden="true"></i>
-      <span class="salir">Salir</span>
-    </button>
-  </div>
-
-  <main>
-    <h1 class="fs-3 text-center">Gestión de Datos</h1>
-    <hr class="hr-data" aria-hidden="true" />
-
-    {% with messages = get_flashed_messages(with_categories=true) %} {% if
-    messages %} {% for category, message in messages %}
-    <div
-      class="alert mse alert-{{ 'success' if category == 'success' else 'danger' }} msj-alert"
-      role="alert"
-    >
-      <button class="close-alert" aria-label="Cerrar mensaje">×</button>
-      <i
-        class="bx bx-{{ 'check-circle' if category == 'success' else 'message-square-x' }} icons"
-        aria-hidden="true"
-      ></i>
-      <h2 class="h5">{{ 'Éxito' if category == 'success' else 'Error' }}</h2>
-      <p>{{ message }}</p>
-    </div>
-    {% endfor %} {% endif %} {% endwith %}
-
-    <section aria-labelledby="carga-archivo-heading">
-      <h2 id="carga-archivo-heading" class="visually-hidden">
-        Carga de archivos Excel
-      </h2>
-
-      <div
-        class="contentBusc d-flex justify-content-center align-items-center mt-5"
-      >
-        <form
-          action="/cargar_data"
-          method="POST"
-          enctype="multipart/form-data"
-          id="cargarExcelForm"
-          class="d-flex flex-column align-items-center"
-        >
-          <div
-            class="dropzone-area mb-3"
-            id="dropzoneArea"
-            role="region"
-            aria-labelledby="dropzoneInstructions"
-          >
-            <p id="dropzoneText" class="mb-3">
-              Arrastra y suelta tu archivo Excel aquí o haz clic para
-              seleccionarlo
-            </p>
-            <p id="dropzoneInstructions" class="visually-hidden">
-              Área para arrastrar y soltar archivos Excel (.xlsx) con tamaño
-              máximo de 10MB
-            </p>
-
-            <input
-              type="file"
-              name="file"
-              id="file"
-              class="form-control-file"
-              accept=".xlsx"
-              required
-              aria-describedby="fileHelp"
-            />
-            <small id="fileHelp" class="form-text text-muted"
-              >Formatos aceptados: .xlsx (Tamaño máximo: 10MB)</small
-            >
-
-            <button
-              type="button"
-              class="btn btn-secondary mt-3"
-              id="selectFileButton"
-            >
-              <i class="bx bx-folder-open me-1" aria-hidden="true"></i>
-              Seleccionar Archivo
-            </button>
-          </div>
-
-          <button type="submit" class="btn btn-primary" id="submitBtn" disabled>
-            <i class="bx bx-upload me-1" aria-hidden="true"></i> Cargar Datos
-          </button>
-        </form>
-      </div>
-    </section>
-
-    <section aria-labelledby="acciones-heading" class="mt-5">
-      <h2 id="acciones-heading" class="visually-hidden">
-        Acciones de gestión de datos
-      </h2>
-
-      <div class="skp_tabla d-flex justify-content-center flex-wrap gap-3">
-        <button
-          type="button"
-          class="btn btn-info btn-lg"
-          onclick="iniciarBackup('excel')"
-        >
-          <i class="bx bx-save me-1" aria-hidden="true"></i> Copia de Seguridad
-          (Excel)
-        </button>
-
-        {% if session.get('Super_Admin') == 1 %}
-        <button
-          type="button"
-          id="vaciarDbBtn"
-          class="btn btn-danger btn-lg"
-          onclick="confirmarVaciarDb()"
-        >
-          <i class="bx bx-trash me-1" aria-hidden="true"></i> Vaciar Base de
-          Datos
-        </button>
-        {% endif %}
-      </div>
-    </section>
-  </main>
-
-  <form
-    id="backup-excel"
-    action="/backup_excel"
-    method="POST"
-    class="d-none"
-  ></form>
-  <form
-    id="vaciarDbForm"
-    action="/vaciar_db"
-    method="POST"
-    class="d-none"
-  ></form>
-</div>
-
 <style>
   .container_tabla {
     max-width: 1200px;
@@ -244,6 +112,140 @@
     }
   }
 </style>
+<div class="container_tabla mt-4">
+  <div class="header_tabla">
+    <button class="exit_tabla" aria-label="Salir del módulo">
+      <i class="bx bx-log-out" aria-hidden="true"></i>
+      <span class="salir">Salir</span>
+    </button>
+  </div>
+
+  <main>
+    <h1 class="fs-3 text-center">Gestión de Datos</h1>
+    <hr class="hr-data" aria-hidden="true" />
+
+    {% with messages = get_flashed_messages(with_categories=true) %} {% if
+    messages %} {% for category, message in messages %}
+    <div
+      class="alert mse alert-{{ 'success' if category == 'success' else 'danger' }} msj-alert"
+      role="alert"
+    >
+      <button class="close-alert" aria-label="Cerrar mensaje">×</button>
+      <i
+        class="bx bx-{{ 'check-circle' if category == 'success' else 'message-square-x' }} icons"
+        aria-hidden="true"
+      ></i>
+      <h2 class="h5">{{ 'Éxito' if category == 'success' else 'Error' }}</h2>
+      <p>{{ message }}</p>
+    </div>
+    {% endfor %} {% endif %} {% endwith %}
+
+    <section aria-labelledby="carga-archivo-heading">
+      <h2 id="carga-archivo-heading" class="visually-hidden">
+        Carga de archivos Excel
+      </h2>
+
+      <div
+        class="contentBusc d-flex justify-content-center align-items-center mt-5"
+      >
+        <form
+          action="/cargar_data"
+          method="POST"
+          enctype="multipart/form-data"
+          id="cargarExcelForm"
+          class="d-flex flex-column align-items-center"
+        >
+          <div
+            class="dropzone-area mb-3"
+            id="dropzoneArea"
+            role="region"
+            aria-labelledby="dropzoneInstructions"
+          >
+            <p id="dropzoneText" class="mb-3">
+              Arrastra y suelta tu archivo Excel aquí o haz clic para
+              seleccionarlo
+            </p>
+            <p id="dropzoneInstructions" class="visually-hidden">
+              Área para arrastrar y soltar archivos Excel (.xlsx) con tamaño
+              máximo de 10MB
+            </p>
+
+            <input
+              type="file"
+              name="file"
+              id="file"
+              class="form-control-file"
+              accept=".xlsx"
+              required
+              aria-describedby="fileHelp"
+            />
+            <small id="fileHelp" class="form-text text-muted"
+              >Formatos aceptados: .xlsx (Tamaño máximo: 10MB)</small
+            >
+
+            <button
+              type="button"
+              class="btn btn-secondary mt-3"
+              id="selectFileButton"
+            >
+              <i class="bx bx-folder-open me-1" aria-hidden="true"></i>
+              Seleccionar Archivo
+            </button>
+          </div>
+
+          <button type="submit" class="btn btn-primary" id="submitBtn" disabled>
+            <i class="bx bx-upload me-1" aria-hidden="true"></i> Cargar Datos
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <section aria-labelledby="acciones-heading" class="mt-5">
+      <h2 id="acciones-heading" class="visually-hidden">
+        Acciones de gestión de datos
+      </h2>
+
+      <div
+        class="skp_tabla d-flex justify-content-between flex-wrap gap-3"
+        style="width: 100%"
+      >
+        <button
+          type="button"
+          class="btn btn-info btn-lg"
+          onclick="iniciarBackup('excel')"
+        >
+          <i class="bx bx-save me-1" aria-hidden="true"></i> Copia de Seguridad
+          (Excel)
+        </button>
+
+        {% if session.get('Super_Admin') == 1 %}
+        <button
+          type="button"
+          id="vaciarDbBtn"
+          class="btn btn-danger btn-lg"
+          onclick="confirmarVaciarDb()"
+        >
+          <i class="bx bx-trash me-1" aria-hidden="true"></i> Vaciar Base de
+          Datos
+        </button>
+        {% endif %}
+      </div>
+    </section>
+  </main>
+
+  <form
+    id="backup-excel"
+    action="/backup_excel"
+    method="POST"
+    class="d-none"
+  ></form>
+  <form
+    id="vaciarDbForm"
+    action="/vaciar_db"
+    method="POST"
+    class="d-none"
+  ></form>
+</div>
 
 <script>
   const swalCustomStyles = {

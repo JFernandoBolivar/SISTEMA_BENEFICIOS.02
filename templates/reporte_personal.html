@@ -4,6 +4,7 @@
   href="{{url_for('static', filename='css/pdf_listados.css')}}"
 />
 <div class="container_tabla">
+  
   <div class="header_tabla">
     <button class="exit_tabla">
       <i class="bx bx-log-out"></i><label class="salir">Salir</label>
@@ -16,33 +17,62 @@
         >X</a
       >
       <h1 class="fs-3 report mt-1 text-center">
-        Reporte de Movimientos de Personal
+        Listado de beneficios entregados
       </h1>
-
+      <hr class="my-3" />
       <form
         method="get"
         action="{{ url_for('gestion_usuarios.reporte_personalPDF') }}"
         class="form-fecha mt-3"
       >
         <div class="row g-2">
+          
           <div class="col-12 col-md-6">
+            <label for="filtroCedula" class="form-label">Cédula del beneficiario</label>
             <input
               type="text"
-              name="nombre"
-              placeholder="Nombre beneficiario"
-              value="{{ nombre }}"
+              id="filtroCedula"
+              name="cedula"
+              placeholder="Cédula beneficiario"
+              value="{{ cedula }}"
               class="form-control"
             />
           </div>
           <div class="col-12 col-md-6">
+            <label for="filtroFecha" class="form-label">Fecha de la entrega</label>
             <input
               type="date"
+              id="filtroFecha"
               name="fecha"
               value="{{ fecha }}"
               class="form-control"
+              placeholder="Fecha de la entrega"
             />
           </div>
-          <div class="col-12 d-flex justify-content-center mt-2">
+          <div class="col-12 col-md-6">
+            <label for="filtroMes" class="form-label">Mes y año</label>
+            <input
+              type="month"
+              id="filtroMes"
+              name="mes"
+              value="{{ mes }}"
+              class="form-control"
+              placeholder="Mes"
+              min="2025-01"
+              max="2100-12"
+            />
+          </div>
+          <div class="col-12 col-md-6">
+            <label for="filtroEstatus" class="form-label">Estatus</label>
+            <select id="filtroEstatus" name="estatus" class="form-control">
+              <option value="">Todos los estatus</option>
+              <option value="activo" {% if estatus == 'activo' %}selected{% endif %}>Activo</option>
+              <option value="pasivo" {% if estatus == 'pasivo' %}selected{% endif %}>Pasivo</option>
+              <option value="vigente" {% if estatus == 'vigente' %}selected{% endif %}>Comisión Vigente</option>
+              <option value="vencida" {% if estatus == 'vencida' %}selected{% endif %}>Comisión Vencida</option>
+            </select>
+          </div>
+          <div class="col-12 d-flex justify-content-center mt-3">
             <button
               type="submit"
               name="pdf"
@@ -59,31 +89,30 @@
       >Descargar <i class="bx bxs-download fs-3"></i
     ></a>
   </div>
-
-  <h1>Reporte de Movimientos de Personal</h1>
+  <h1>Listado de beneficios entregados</h1>
   <div class="contentBusc">
     <button id="search">
       <i class="bx bx-search buscSearch"></i>
     </button>
     <div class="filtrosContent">
-      <label for="fecha">Fecha:</label>
+      <input
+        type="text"
+        id="buscarCedula"
+        placeholder="Buscar cédula"
+        oninput="filterTable()"
+      />
+      <input
+        type="text"
+        id="buscarNombre"
+        placeholder="Nombre"
+        oninput="filterTable()"
+      />
+      <label for="buscarFecha" style="margin-bottom: 0">Fecha:</label>
       <input
         type="date"
-        id="fecha"
+        id="buscarFecha"
         class="fch"
         name="fecha"
-        oninput="filterTable()"
-      />
-      <input
-        type="text"
-        id="buscarCedula2"
-        placeholder="C.I beneficiario"
-        oninput="filterTable()"
-      />
-      <input
-        type="text"
-        id="Nombre2"
-        placeholder="Nombre Autorizado"
         oninput="filterTable()"
       />
     </div>
@@ -98,30 +127,39 @@
     <table class="table table-striped table-bordered" id="historialTable">
       <thead class="table-dark">
         <tr>
-          <th scope="col">Nombre del personal</th>
           <th scope="col">Cedula del personal</th>
+          <th scope="col">Nombre del personal</th>
+          <th scope="col">Estatus</th>
+          <th scope="col">Fecha de la entrega</th>
+          <th scope="col">Cedula del usuario que realizo la entrega</th>
+          <th scope="col">Nombre de usuario que realizo la entrega</th>
           <th scope="col">Nombre del autorizado</th>
           <th scope="col">Cedula del autorizado</th>
-          <th scope="col">Usuario que realizo la entrega</th>
-          <th scope="col">Fecha de la entrega</th>
         </tr>
       </thead>
       <tbody>
         {% for action in historial %}
         <tr>
-          <td>{{ action.Name_personal if action.Name_personal else ' ' }}</td>
           <td>
             {{ action.cedula_personal if action.cedula_personal else ' ' }}
           </td>
+          <td>{{ action.Name_personal if action.Name_personal else ' ' }}</td>
+
+          <td>
+            {% if action.Estatus == 2 %} Pasivo {% elif action.Estatus == 10 %}
+            Comisión de Servicio Vigente {% elif action.Estatus in [9, 11] %}
+            Comisión de Servicio Vencida {% else %} Activo {% endif %}
+          </td>
+          <td>{{ action.time_login if action.time_login else ' '}}</td>
+          <td>{{ action.cedula }}</td>
+          <td>{{ action.Name_user }}</td>
+
           <td>
             {{action.Name_autorizado if action.Name_autorizado else ' ' }}
           </td>
           <td>
             {{action.Cedula_autorizado if action.Cedula_autorizado else ' '}}
           </td>
-
-          <td>{{ action.Name_user }}</td>
-          <td>{{ action.time_login if action.time_login else ' '}}</td>
         </tr>
         {% endfor %} {% if not historial %}
         <tr>
@@ -132,29 +170,39 @@
     </table>
   </section>
 </div>
-
 <script>
+  function normalizarTexto(texto) {
+    return texto
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
   function filterTable() {
-    var fecha = document.getElementById("fecha").value.toLowerCase();
-    var cedula = document.getElementById("buscarCedula2").value.toLowerCase();
-    var nombre = document.getElementById("Nombre2").value.toLowerCase();
+    var cedula = document.getElementById("buscarCedula").value.toLowerCase();
+    var nombre = normalizarTexto(document.getElementById("buscarNombre").value);
+    var fecha = document.getElementById("buscarFecha").value;
     var table = document.getElementById("historialTable");
     var tr = table.getElementsByTagName("tr");
 
     for (var i = 1; i < tr.length; i++) {
-      var tdFecha = tr[i].getElementsByTagName("td")[5];
-      var tdCedula = tr[i].getElementsByTagName("td")[1];
-      var tdNombre = tr[i].getElementsByTagName("td")[2];
-      if (tdFecha && tdCedula && tdNombre) {
-        var txtValueFecha = tdFecha.textContent || tdFecha.innerText;
+      var tdCedula = tr[i].getElementsByTagName("td")[0];
+      var tdNombre = tr[i].getElementsByTagName("td")[1];
+      var tdFecha = tr[i].getElementsByTagName("td")[3];
+      if (tdCedula && tdNombre && tdFecha) {
         var txtValueCedula = tdCedula.textContent || tdCedula.innerText;
-        var txtValueNombre = tdNombre.textContent || tdNombre.innerText;
-        if (
-          (fecha === "" || txtValueFecha.toLowerCase().indexOf(fecha) > -1) &&
-          (cedula === "" ||
-            txtValueCedula.toLowerCase().indexOf(cedula) > -1) &&
-          (nombre === "" || txtValueNombre.toLowerCase().indexOf(nombre) > -1)
-        ) {
+        var txtValueNombre = normalizarTexto(
+          tdNombre.textContent || tdNombre.innerText
+        );
+        var txtValueFecha = tdFecha.textContent || tdFecha.innerText;
+        var fechaCelda = txtValueFecha.trim().substring(0, 10);
+        var fechaMatch = fecha === "" || fechaCelda === fecha;
+        var cedulaMatch =
+          cedula === "" || txtValueCedula.toLowerCase().indexOf(cedula) > -1;
+        var nombreMatch = nombre === "" || txtValueNombre.indexOf(nombre) > -1;
+        if (fechaMatch && cedulaMatch && nombreMatch) {
           tr[i].style.display = "";
         } else {
           tr[i].style.display = "none";
