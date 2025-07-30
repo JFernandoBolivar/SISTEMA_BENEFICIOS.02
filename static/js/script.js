@@ -78,7 +78,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     if (next2) {
         next2.addEventListener('click', () => {
-            window.location.href = "/listado";
+            window.location.href = "/reporte_personal";
         });
     }
     if (exit3) {

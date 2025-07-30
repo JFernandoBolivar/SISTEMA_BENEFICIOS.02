@@ -349,14 +349,14 @@ def listado_no_registrado():
         SELECT personal.Cedula, personal.Name_Com, personal.Location_Physical, 
                personal.Estatus, personal.ESTADOS, personal.Code, personal.Location_Admin
         FROM personal
-        LEFT JOIN delivery ON personal.ID = delivery.Data_ID
+        LEFT JOIN delivery ON personal.Cedula = delivery.Data_ID
         WHERE delivery.ID IS NULL
     ''')
     registros = cursor.fetchall()
     cursor.execute('''
         SELECT COUNT(*) AS total_no_entregados
         FROM personal
-        LEFT JOIN delivery ON personal.ID = delivery.Data_ID
+        LEFT JOIN delivery ON personal.Cedula = delivery.Data_ID
         WHERE delivery.ID IS NULL
     ''')
     total_no_entregados = cursor.fetchone()['total_no_entregados']
@@ -419,7 +419,7 @@ def listado_no_regist_pdf():
     cursor.execute(f'''
         SELECT COUNT(*) AS total_no_entregados
         FROM personal
-        LEFT JOIN delivery ON personal.ID = delivery.Data_ID
+        LEFT JOIN delivery ON personal.Cedula = delivery.Data_ID
         WHERE delivery.ID IS NULL
         {filtro_count}
     ''')
@@ -448,7 +448,7 @@ def listado_no_registrado_excel():
         SELECT personal.Cedula, personal.Name_Com, personal.Location_Physical, 
                personal.Location_Admin, personal.Code, personal.Estatus, personal.ESTADOS
         FROM personal
-        LEFT JOIN delivery ON personal.ID = delivery.Data_ID
+        LEFT JOIN delivery ON personal.Cedula = delivery.Data_ID
         WHERE delivery.ID IS NULL
     '''
     if filtro == 'activo':
@@ -574,14 +574,13 @@ def reporte():
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
-    # Consulta principal de entregas desde user_history
     query = '''
         SELECT DATE(time_login) as fecha,
-           SUM(CASE WHEN Estatus = 1 THEN 1 ELSE 0 END) as total_activos,
-           SUM(CASE WHEN Estatus = 2 THEN 1 ELSE 0 END) as total_pasivos,
-           SUM(CASE WHEN Estatus IN (9, 11) THEN 1 ELSE 0 END) as total_comision_vencida,
-           SUM(CASE WHEN Estatus = 10 THEN 1 ELSE 0 END) as total_comision_vigente,
-           COUNT(*) as total_entregas
+           SUM(CASE WHEN action LIKE 'Marco como entregado el beneficio a%%' AND Estatus = 1 THEN 1 ELSE 0 END) as total_activos,
+           SUM(CASE WHEN action LIKE 'Marco como entregado el beneficio a%%' AND Estatus = 2 THEN 1 ELSE 0 END) as total_pasivos,
+           SUM(CASE WHEN action LIKE 'Marco como entregado el beneficio a%%' AND Estatus IN (9, 11) THEN 1 ELSE 0 END) as total_comision_vencida,
+           SUM(CASE WHEN action LIKE 'Marco como entregado el beneficio a%%' AND Estatus = 10 THEN 1 ELSE 0 END) as total_comision_vigente,
+           SUM(CASE WHEN action LIKE 'Marco como entregado el beneficio a%%' THEN 1 ELSE 0 END) as total_entregas
         FROM user_history
     '''
     params = []
@@ -591,7 +590,10 @@ def reporte():
         params.extend([mes, anio])
     query += where + " GROUP BY DATE(time_login)"
 
-    cursor.execute(query, params)
+    if params:
+        cursor.execute(query, params)
+    else:
+        cursor.execute(query)
     reportes = cursor.fetchall()
 
     # Consulta de entregas de apoyo agrupadas por fecha
@@ -601,18 +603,19 @@ def reporte():
         apoyo_query += " WHERE MONTH(Fecha) = %s AND YEAR(Fecha) = %s"
         apoyo_params.extend([mes, anio])
     apoyo_query += " GROUP BY DATE(Fecha)"
-    cursor.execute(apoyo_query, apoyo_params)
+    if apoyo_params:
+        cursor.execute(apoyo_query, apoyo_params)
+    else:
+        cursor.execute(apoyo_query)
     apoyos = cursor.fetchall()
 
     apoyo_dict = {str(a['fecha']): a['total_apoyo'] or 0 for a in apoyos}
 
-    # Asegura que todos los reportes tengan total_apoyo y total_entregas_con_apoyo
     for reporte in reportes:
         fecha_str = str(reporte['fecha'])
         reporte['total_apoyo'] = apoyo_dict.get(fecha_str, 0)
         reporte['total_entregas_con_apoyo'] = reporte['total_entregas'] + reporte['total_apoyo']
 
-    # Totales generales
     total_entregas = sum(reporte['total_entregas'] for reporte in reportes)
     total_activos = sum(reporte['total_activos'] for reporte in reportes)
     total_pasivos = sum(reporte['total_pasivos'] for reporte in reportes)
@@ -639,43 +642,69 @@ def reporte():
         mes=mes,
         anio=anio
     )
-
 # pdf para los reportes
-
 @reportes_bp.route("/reporte_pdf", methods=["GET", "POST"])
 def reporte_pdf():
     usuario = session.get('username', 'Usuario')
     fecha_actual = datetime.now().strftime('%d/%m/%Y %H:%M')
+    mes_raw = request.args.get('mes') 
+    mes = None
+    anio = None
+
+    if mes_raw and '-' in mes_raw:
+        try:
+            anio, mes = mes_raw.split('-')
+            mes = int(mes)
+            anio = int(anio)
+        except Exception:
+            mes = None
+            anio = None
+    elif mes_raw and mes_raw.isdigit():
+        mes = int(mes_raw)
+
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
-    # Consulta principal de entregas desde user_history (sin filtro de mes ni año)
     query = '''
         SELECT DATE(time_login) as fecha,
-               SUM(CASE WHEN Estatus = 1 THEN 1 ELSE 0 END) as total_activos,
-               SUM(CASE WHEN Estatus = 2 THEN 1 ELSE 0 END) as total_pasivos,
-               SUM(CASE WHEN Estatus = 10 THEN 1 ELSE 0 END) as total_comision_vigente,
-               SUM(CASE WHEN Estatus IN (9, 11) THEN 1 ELSE 0 END) as total_comision_vencida,
-               COUNT(*) as total_entregas
+               SUM(CASE WHEN action LIKE 'Marco como entregado el beneficio a%%' AND Estatus = 1 THEN 1 ELSE 0 END) as total_activos,
+               SUM(CASE WHEN action LIKE 'Marco como entregado el beneficio a%%' AND Estatus = 2 THEN 1 ELSE 0 END) as total_pasivos,
+               SUM(CASE WHEN action LIKE 'Marco como entregado el beneficio a%%' AND Estatus = 10 THEN 1 ELSE 0 END) as total_comision_vigente,
+               SUM(CASE WHEN action LIKE 'Marco como entregado el beneficio a%%' AND Estatus IN (9, 11) THEN 1 ELSE 0 END) as total_comision_vencida,
+               SUM(CASE WHEN action LIKE 'Marco como entregado el beneficio a%%' THEN 1 ELSE 0 END) as total_entregas
         FROM user_history
-        GROUP BY DATE(time_login)
     '''
-    cursor.execute(query)
+    params = []
+    if mes and anio:
+        query += " WHERE MONTH(time_login) = %s AND YEAR(time_login) = %s"
+        params.extend([mes, anio])
+    query += " GROUP BY DATE(time_login)"
+
+    if params:
+        cursor.execute(query, params)
+    else:
+        cursor.execute(query)
     reportes = cursor.fetchall()
 
-    # Consulta de entregas de apoyo agrupadas por fecha (sin filtro de mes ni año)
-    apoyo_query = "SELECT DATE(Fecha) as fecha, SUM(cantidad) as total_apoyo FROM apoyo GROUP BY DATE(Fecha)"
-    cursor.execute(apoyo_query)
+   
+    apoyo_query = "SELECT DATE(Fecha) as fecha, SUM(cantidad) as total_apoyo FROM apoyo"
+    apoyo_params = []
+    if mes and anio:
+        apoyo_query += " WHERE MONTH(Fecha) = %s AND YEAR(Fecha) = %s"
+        apoyo_params.extend([mes, anio])
+    apoyo_query += " GROUP BY DATE(Fecha)"
+    if apoyo_params:
+        cursor.execute(apoyo_query, apoyo_params)
+    else:
+        cursor.execute(apoyo_query)
     apoyos = cursor.fetchall()
 
     apoyo_dict = {str(a['fecha']): a['total_apoyo'] or 0 for a in apoyos}
 
-    # Asegura que todos los reportes tengan total_apoyo y total_entregas_con_apoyo
     for reporte in reportes:
         fecha_str = str(reporte['fecha'])
         reporte['total_apoyo'] = apoyo_dict.get(fecha_str, 0)
         reporte['total_entregas_con_apoyo'] = reporte['total_entregas'] + reporte['total_apoyo']
 
-    # Totales generales
     total_entregas = sum(r['total_entregas'] for r in reportes)
     total_activos = sum(r['total_activos'] for r in reportes)
     total_pasivos = sum(r['total_pasivos'] for r in reportes)
@@ -702,6 +731,8 @@ def reporte_pdf():
         total_entregas_con_apoyo=total_entregas_con_apoyo,
         usuario=usuario,
         fecha_actual=fecha_actual,
+        mes=mes,
+        anio=anio
     )
     pdf = HTML(string=rendered).write_pdf()
 

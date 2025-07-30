@@ -66,13 +66,6 @@
               >
             </li>
 
-            <li>
-              <a
-                class="dropdown-item"
-                href="{{ url_for('gestion_usuarios.reporte_personal') }}"
-                >Movimientos de Personal</a
-              >
-            </li>
             <hr class="dropdown-divider" />
             <li>
               <a
@@ -138,7 +131,10 @@
           </a>
           <ul class="dropdown-menu dropdown-menu-end text-center bg-dark">
             <li>
-              <a class="dropdown-item" href="{{ url_for('reportes.listado') }}">
+              <a
+                class="dropdown-item"
+                href="{{ url_for('gestion_usuarios.reporte_personal') }}"
+              >
                 Personal</a
               >
             </li>

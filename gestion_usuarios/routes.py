@@ -247,8 +247,18 @@ def NuevoUserActivo():
             ''', (cedula, nombreCompleto, CodigoCarnet, unidadFisica, unidadAdmin, estatus))
             mysql.connection.commit()
             
-            cursor.execute('INSERT INTO user_history (cedula, Name_user, action, time_login) VALUES (%s, %s, %s, %s)', 
-                           (session['cedula'], session['username'], f'Registró un personal activo con cédula {cedula}', datetime.now()))
+            cursor.execute('''
+                INSERT INTO user_history 
+                (cedula, Name_user,Estatus,Observation, action, time_login) 
+                VALUES (%s, %s, %s, %s, %s,%s)
+            ''', (
+                session['cedula'], 
+                session['username'],
+                estatus,
+                observacion,
+                f'Registró un personal activo con cédula {cedula}', 
+                datetime.now()
+            ))
             mysql.connection.commit()
 
             if CIFamiliar and Nombre_Familiar:
@@ -264,8 +274,22 @@ def NuevoUserActivo():
             ''', (horaEntrega, cedula, cedula_personal, observacion, lunch))
             mysql.connection.commit()
     
-            cursor.execute('INSERT INTO user_history (cedula, Name_user, action, time_login) VALUES (%s, %s, %s, %s)', 
-                          (session['cedula'], session['username'], f'Registró entrega para {cedula}', datetime.now()))
+            cursor.execute('''
+                INSERT INTO user_history 
+                (cedula, Name_user, cedula_personal, Name_personal,Name_autorizado, Cedula_autorizado,Estatus,Observation, action, time_login) 
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s,%s,%s)
+            ''', (
+                session['cedula'], 
+                session['username'],
+                cedula,  
+                nombreCompleto, 
+                Nombre_Familiar,
+                CIFamiliar,
+                estatus,
+                observacion,
+                f'Marco como entregado el beneficio a {cedula}', 
+                datetime.now()
+            ))
             mysql.connection.commit()
             
             cursor.close()
@@ -307,8 +331,18 @@ def NuevoUserPasivo():
             mysql.connection.commit()
 
 
-            cursor.execute('INSERT INTO user_history (cedula, Name_user, action, time_login) VALUES (%s, %s, %s, %s)', 
-                           (session['cedula'], session['username'], f'Registró un personal pasivo con cédula {cedula}', datetime.now()))
+            cursor.execute('''
+                INSERT INTO user_history 
+                (cedula, Name_user,Estatus,Observation, action, time_login) 
+                VALUES (%s, %s, %s, %s, %s, %s)
+            ''', (
+                session['cedula'], 
+                session['username'],
+                estatus,
+                observacion,
+                f'Registró un personal pasivo con cédula {cedula}', 
+                datetime.now()
+            ))
             mysql.connection.commit()
 
             if CIFamiliar and Nombre_Familiar:
@@ -324,8 +358,22 @@ def NuevoUserPasivo():
             ''', (horaEntrega, cedula, cedula_personal, observacion, lunch))
             mysql.connection.commit()
             
-            cursor.execute('INSERT INTO user_history (cedula, Name_user, action, time_login) VALUES (%s, %s, %s, %s)', 
-                          (session['cedula'], session['username'], f'Registró entrega para {cedula}', datetime.now()))
+            cursor.execute('''
+                INSERT INTO user_history 
+                (cedula, Name_user, cedula_personal, Name_personal,Name_autorizado, Cedula_autorizado,Estatus,Observation, action, time_login) 
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s,%s,%s)
+            ''', (
+                session['cedula'], 
+                session['username'],
+                cedula,  
+                nombreCompleto, 
+                Nombre_Familiar,
+                CIFamiliar,
+                estatus,
+                observacion,
+                f'Marco como entregado el beneficio a{cedula}', 
+                datetime.now()
+            ))
             mysql.connection.commit()
             
             cursor.close()

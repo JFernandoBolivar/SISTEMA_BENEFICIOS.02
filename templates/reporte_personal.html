@@ -4,12 +4,11 @@
   href="{{url_for('static', filename='css/pdf_listados.css')}}"
 />
 <div class="container_tabla">
-  
   <div class="header_tabla">
     <button class="exit_tabla">
       <i class="bx bx-log-out"></i><label class="salir">Salir</label>
     </button>
-    <div class="alert windwsPDF mse" role="alert">
+    <!-- <div class="alert windwsPDF mse" role="alert">
       <a
         id="exit"
         class="btn me-3"
@@ -39,7 +38,7 @@
             />
           </div>
           <div class="col-12 col-md-6">
-            <label for="filtroFecha" class="form-label">Fecha de la entrega</label>
+            <label for="filtroFecha" class="form-label">Día de la entrega</label>
             <input
               type="date"
               id="filtroFecha"
@@ -84,8 +83,12 @@
           </div>
         </div>
       </form>
-    </div>
-    <a class="btn btn-dark" id="PDFPersonal"
+    </div> -->
+    <a
+      href="{{ url_for('reportes.listado_pdf') }}"
+      class="btn btn-primary"
+      id="downloadPDF1"
+      target="_blank"
       >Descargar <i class="bx bxs-download fs-3"></i
     ></a>
   </div>
@@ -127,14 +130,15 @@
     <table class="table table-striped table-bordered" id="historialTable">
       <thead class="table-dark">
         <tr>
-          <th scope="col">Cedula del personal</th>
+          <th scope="col">Cédula del personal</th>
           <th scope="col">Nombre del personal</th>
           <th scope="col">Estatus</th>
           <th scope="col">Fecha de la entrega</th>
-          <th scope="col">Cedula del usuario que realizo la entrega</th>
-          <th scope="col">Nombre de usuario que realizo la entrega</th>
+          <th scope="col">Cédula del registrador</th>
+          <th scope="col">Nombre del registrador</th>
           <th scope="col">Nombre del autorizado</th>
-          <th scope="col">Cedula del autorizado</th>
+          <th scope="col">Cédula del autorizado</th>
+          <th scope="col">Observación</th>
         </tr>
       </thead>
       <tbody>
@@ -160,15 +164,22 @@
           <td>
             {{action.Cedula_autorizado if action.Cedula_autorizado else ' '}}
           </td>
+          <td>{{action.Observation if action.Observation else ' '}}</td>
         </tr>
         {% endfor %} {% if not historial %}
         <tr>
-          <td colspan="14">No hay datos disponibles</td>
+          <td colspan="9">No hay datos disponibles</td>
         </tr>
         {% endif %}
       </tbody>
     </table>
   </section>
+  <div class="skp_tabla d-flex justify-content-end mt-4">
+    <button id="next" class="next_tabla">
+      <label class="next">Por Entregar</label>
+      <i class="bx bxs-right-arrow-square"></i>
+    </button>
+  </div>
 </div>
 <script>
   function normalizarTexto(texto) {

@@ -29,6 +29,7 @@
         text-align: center;
         white-space: normal;
         word-wrap: break-word;
+        font-size: 10px;
       }
       .table th {
         background-color: #f2f2f2;
@@ -58,7 +59,7 @@
       }
       .TextPersonal td,
       .TextPersonal th {
-        font-size: 12px;
+        font-size: 11px;
       }
 
       .hrr {
@@ -124,10 +125,11 @@
               <th scope="col">Cedula del personal</th>
               <th scope="col">Estatus</th>
               <th scope="col">Fecha y Hora de la entrega</th>
-              <th scope="col">Cedula del usuario que realizo la entrega</th>
-              <th scope="col">Nombre de usuario que realizo la entrega</th>
+              <th scope="col">Cedula del registrador</th>
+              <th scope="col">Nombre del registrador</th>
               <th scope="col">Nombre del autorizado</th>
               <th scope="col">Cedula del autorizado</th>
+              <th scope="col">Observación</th>
             </tr>
           </thead>
           <tbody class="TextPersonal">
@@ -159,11 +161,12 @@
                 {{registro.Cedula_autorizado if registro.Cedula_autorizado else
                 ' '}}
               </td>
+              <td>{{registro.Observation if registro.Observation else ' '}}</td>
             </tr>
 
             {% endfor %} {% if not historial %}
             <tr>
-              <td colspan="14">No hay datos disponibles</td>
+              <td colspan="9">No hay datos disponibles</td>
             </tr>
             {% endif %}
           </tbody>

@@ -238,9 +238,11 @@ def registrar():
                     cedula_personal,
                     Name_personal,
                     Cedula_autorizado,
-                    Name_autorizado
+                    Name_autorizado,
+                    Estatus,
+                    Observation
                 ) 
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ''', (
                 session['cedula'],
                 session['username'],
@@ -249,7 +251,9 @@ def registrar():
                 titular['Cedula'],
                 titular['Name_Com'],
                 CIFamily,
-                nameFamily
+                nameFamily,
+                titular['Estatus'],
+                observacion
             ))
         else:
             # Registrar en historial solo para titular
@@ -262,16 +266,20 @@ def registrar():
                     cedula_personal,
                     Name_personal,
                     Cedula_autorizado,
-                    Name_autorizado
+                    Name_autorizado,
+                    Estatus,
+                    Observation
                 ) 
-                VALUES (%s, %s, %s, %s, %s, %s, NULL, NULL)
+                VALUES (%s, %s, %s, %s, %s, %s, NULL, NULL, %s, %s)
             ''', (
                 session['cedula'],
                 session['username'],
                 f'Marco como entregado el beneficio a {titular["Cedula"]}',
                 datetime.now(),
                 titular['Cedula'],
-                titular['Name_Com']
+                titular['Name_Com'],
+                titular['Estatus'],
+                observacion
             ))
         
         mysql.connection.commit()
@@ -295,7 +303,9 @@ def registrar():
         
     finally:
         cursor.close()
-
+                
+                
+                
 @consultas_bp.route("/obtener_autorizados", methods=["GET"])
 def obtener_autorizados():
     print("Parámetros recibidos:", request.args)
