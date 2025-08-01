@@ -145,10 +145,11 @@ def reporte_personalPDF():
     cedula = request.args.get('cedula', '').strip()
     fecha = request.args.get('fecha', '').strip()
     mes = request.args.get('mes', '').strip()      # formato 'YYYY-MM'
-    estatus = request.args.get('estatus', '').strip()  # Nuevo filtro
+    estatus = request.args.get('estatus', '').strip()
+    tipo_nomina = request.args.getlist('tipo_nomina')
     usuario = session.get('username', 'Usuario')
     fecha_actual = datetime.now().strftime('%d/%m/%Y %H:%M')
-    
+     
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     query = '''
         SELECT * FROM user_history
@@ -157,6 +158,7 @@ def reporte_personalPDF():
     '''
     params = []
 
+    # Filtros básicos (cedula, fecha, mes)
     if cedula:
         query += " AND cedula_personal LIKE %s"
         params.append(f"%{cedula}%")
@@ -167,25 +169,37 @@ def reporte_personalPDF():
         anio, mes_num = mes.split('-')
         query += " AND YEAR(time_login) = %s AND MONTH(time_login) = %s"
         params.extend([anio, mes_num])
+
+    # Filtro por estatus
     if estatus:
-        # Mapear texto a valores de estatus según tu lógica de la plantilla
-        if estatus.lower() == "activo":
-            query += " AND Estatus = %s"
-            params.append(1)
-        elif estatus.lower() == "pasivo":
-            query += " AND Estatus = %s"
-            params.append(2)
-        elif "vigente" in estatus.lower():
-            query += " AND Estatus = %s"
-            params.append(10)
-        elif "vencida" in estatus.lower():
-            query += " AND Estatus IN (%s, %s)"
-            params.extend([9, 11])
+        status_map = {
+            'activo': 1,
+            'pasivo': 2,
+            'vigente': 10,
+            'vencida': [9, 11]
+        }
+        
+        if estatus.lower() in status_map:
+            status_value = status_map[estatus.lower()]
+            if isinstance(status_value, list):
+                placeholders = ','.join(['%s'] * len(status_value))
+                query += f" AND Estatus IN ({placeholders})"
+                params.extend(status_value)
+            else:
+                query += " AND Estatus = %s"
+                params.append(status_value)
+
+    # Filtro por tipo de nómina (solo si se seleccionó al menos uno)
+    if tipo_nomina and any(tipo.strip() for tipo in tipo_nomina):
+        placeholders = ','.join(['%s'] * len(tipo_nomina))
+        query += f" AND typeNomina IN ({placeholders})"
+        params.extend(tipo_nomina)
 
     cursor.execute(query, params)
     historial = cursor.fetchall()
     cursor.close()
 
+    # Resto del código (generación PDF y renderizado) permanece igual
     if request.args.get('pdf') == '1':
         rendered = render_template(
             'reporte_personal_pdf.html',
@@ -213,7 +227,6 @@ def reporte_personalPDF():
         usuario=usuario,
         fecha_actual=fecha_actual
     )
-
 @gestion_usuarios_bp.route("/nuevoEmpActivo", methods=["GET", "POST"])
 def NuevoUserActivo():
     if 'loggedin' not in session:
@@ -236,7 +249,8 @@ def NuevoUserActivo():
             cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
             cursor.execute('SELECT * FROM personal WHERE Cedula = %s', (cedula,))
             existing_user = cursor.fetchone()
-
+            
+            
             if existing_user:
                 cursor.close()
                 return render_template("nuevo_user_activo.html", error="Esta cédula ya está registrada.")
@@ -250,7 +264,7 @@ def NuevoUserActivo():
             cursor.execute('''
                 INSERT INTO user_history 
                 (cedula, Name_user,Estatus,Observation, action, time_login) 
-                VALUES (%s, %s, %s, %s, %s,%s)
+                VALUES (%s, %s, %s,%s, %s,%s)
             ''', (
                 session['cedula'], 
                 session['username'],
@@ -277,7 +291,7 @@ def NuevoUserActivo():
             cursor.execute('''
                 INSERT INTO user_history 
                 (cedula, Name_user, cedula_personal, Name_personal,Name_autorizado, Cedula_autorizado,Estatus,Observation, action, time_login) 
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s,%s,%s)
+                VALUES (%s, %s, %s, %s, %s,%s, %s, %s,%s,%s)
             ''', (
                 session['cedula'], 
                 session['username'],
@@ -287,6 +301,7 @@ def NuevoUserActivo():
                 CIFamiliar,
                 estatus,
                 observacion,
+                
                 f'Marco como entregado el beneficio a {cedula}', 
                 datetime.now()
             ))
@@ -311,6 +326,7 @@ def NuevoUserPasivo():
         CodigoCarnet = request.form.get('CodigoCarnet', None)
         estatus = 2
         estado = request.form['estado']
+        type_nomina = request.form['type_nomina']
         cedula_personal = session['cedula']
         lunch = 1 if 'lunch' in request.form else 0
         horaEntrega = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -319,26 +335,27 @@ def NuevoUserPasivo():
             cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
             cursor.execute('SELECT * FROM personal WHERE Cedula = %s', (cedula,))
             existing_user = cursor.fetchone()
-
+           
             if existing_user:
                 cursor.close()
                 return render_template("nuevo_user_pasivo.html", error="Esta cédula ya está registrada.")
 
             cursor.execute('''
-                INSERT INTO personal (Cedula, Name_Com, Code, manually, Estatus, ESTADOS) 
-                VALUES (%s, %s, %s, 1, %s, %s)
-            ''', (cedula, nombreCompleto, CodigoCarnet, estatus, estado))
+                INSERT INTO personal (Cedula, Name_Com, Code, manually, Estatus,autorizacion,typeNomina, ESTADOS) 
+                VALUES (%s, %s, %s, 1, %s,%s,%s, %s)
+            ''', (cedula, nombreCompleto, CodigoCarnet, estatus,True,type_nomina, estado))
             mysql.connection.commit()
 
 
             cursor.execute('''
                 INSERT INTO user_history 
-                (cedula, Name_user,Estatus,Observation, action, time_login) 
-                VALUES (%s, %s, %s, %s, %s, %s)
+                (cedula, Name_user,Estatus,typeNomina,Observation, action, time_login) 
+                VALUES (%s, %s, %s,%s, %s, %s, %s)
             ''', (
                 session['cedula'], 
                 session['username'],
                 estatus,
+                type_nomina,
                 observacion,
                 f'Registró un personal pasivo con cédula {cedula}', 
                 datetime.now()
@@ -360,8 +377,8 @@ def NuevoUserPasivo():
             
             cursor.execute('''
                 INSERT INTO user_history 
-                (cedula, Name_user, cedula_personal, Name_personal,Name_autorizado, Cedula_autorizado,Estatus,Observation, action, time_login) 
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s,%s,%s)
+                (cedula, Name_user, cedula_personal, Name_personal,Name_autorizado, Cedula_autorizado,Estatus,typeNomina,Observation, action, time_login) 
+                VALUES (%s, %s, %s, %s, %s, %s,%s, %s, %s,%s,%s)
             ''', (
                 session['cedula'], 
                 session['username'],
@@ -370,6 +387,7 @@ def NuevoUserPasivo():
                 Nombre_Familiar,
                 CIFamiliar,
                 estatus,
+                type_nomina,
                 observacion,
                 f'Marco como entregado el beneficio a{cedula}', 
                 datetime.now()

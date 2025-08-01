@@ -74,6 +74,7 @@
             <th scope="col">Unidad Administrativa</th>
             {% endif %}
              <th scope="col">Estatus</th>
+             <th scope="col">Tipo de nómina</th>
             <th scope="col">Entregado </th>
           </tr>
         </thead>
@@ -97,6 +98,7 @@
                Activo
              {% endif %}
             </td>
+            <td>{{ data.typeNomina if data.typeNomina else "Sin tipo de nómina" }}</td>
             <td>{{ "Sí" if data.Entregado_recientemente else 'No' }}</td>
           </tr>
         </tbody>

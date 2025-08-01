@@ -12,7 +12,7 @@
       }
       .table {
         margin-top: 2em;
-        font-size: 1em;
+
         width: 100%;
         border-collapse: collapse;
         text-align: center;
@@ -23,15 +23,21 @@
         border: 1px solid #000;
         padding: 7px 2px;
         text-align: center;
+        font-size: 10px;
         white-space: normal;
         word-wrap: break-word;
       }
       .table th {
         background-color: #f2f2f2;
+        font-size: 7px;
       }
       .table th:first-child,
       .table td:first-child {
-        width: 30%;
+        width: 6.5%;
+      }
+      .table th:nth-last-child(2),
+      .table td:nth-last-child(2) {
+        width: 4%;
       }
       .list {
         text-align: center;
@@ -101,7 +107,15 @@
             <tr>
               <th>Fecha</th>
               <th>Total Activos</th>
-              <th>Total Pasivos</th>
+              <!-- <th>Total Pasivos</th> -->
+              <th scope="col">Total Jubilado Empleado</th>
+              <th scope="col">Total Jubilado Extinta DISIP</th>
+              <th scope="col">Total Jubilado Obrero</th>
+              <th scope="col">Total Jubilado Policia Metropolitana (ADMI)</th>
+              <th scope="col">Total Pensionado Incap/Viuda Extinta DISIP</th>
+              <th scope="col">Total Pensionado Incapacidad Empleado</th>
+              <th scope="col">Total Pensionado Sobreviviento</th>
+              <th scope="col">Total Pensionados Menores extinta DISIP</th>
               <th>Total Comisión Vencida</th>
               <th>Total Comisión Vigente</th>
               <th>de Apoyo</th>
@@ -113,7 +127,15 @@
             <tr>
               <td>{{ reporte.fecha_formateada }}</td>
               <td>{{ reporte.total_activos }}</td>
-              <td>{{ reporte.total_pasivos }}</td>
+              <!-- <td>{{ reporte.total_pasivos }}</td> -->
+              <td>{{ reporte.total_jubilado_empleado }}</td>
+              <td>{{ reporte.total_jubilado_extinto_disip }}</td>
+              <td>{{ reporte.total_jubilado_obrero }}</td>
+              <td>{{ reporte.total_policia_metropolitano_admi}}</td>
+              <td>{{ reporte.total_pensionado_incap_viuda_extinto_disip }}</td>
+              <td>{{ reporte.total_pensionado_incapacidad_empleado}}</td>
+              <td>{{ reporte.total_sobreviviente }}</td>
+              <td>{{ reporte.total_pensionado_menores_extinto_disip}}</td>
               <td>{{ reporte.total_comision_vencida }}</td>
               <td>{{ reporte.total_comision_vigente }}</td>
               <td>{{ reporte.total_apoyo }}</td>
@@ -123,7 +145,21 @@
             <tr>
               <td><strong>Total General</strong></td>
               <td><strong>{{ total_activos }}</strong></td>
-              <td><strong>{{ total_pasivos }}</strong></td>
+              <!-- <td><strong>{{ total_pasivos }}</strong></td> -->
+              <td><strong>{{ total_jubilado_empleado }}</strong></td>
+              <td><strong>{{ total_jubilado_extinto_disip }}</strong></td>
+              <td><strong>{{ total_jubilado_obrero }}</strong></td>
+              <td><strong>{{ total_policia_metropolitano_admi}}</strong></td>
+              <td>
+                <strong>{{total_pensionado_incap_viuda_extinto_disip }}</strong>
+              </td>
+              <td>
+                <strong>{{ total_pensionado_incapacidad_empleado}}</strong>
+              </td>
+              <td><strong>{{ total_sobreviviente}}</strong></td>
+              <td>
+                <strong>{{ total_pensionado_menores_extinto_disip}}</strong>
+              </td>
               <td><strong>{{ total_comision_vencida }}</strong></td>
               <td><strong>{{ total_comision_vigente }}</strong></td>
               <td><strong>{{ total_apoyo }}</strong></td>

@@ -38,6 +38,7 @@
           <th scope="col">Ubicación administrativa</th>
 
           <th scope="col">Estatus</th>
+          <th scope="col">Tipo de nómina</th>
           <th scope="col">Hora de Entrega</th>
           <th scope="col">Cedula del Autorizado</th>
           <th scope="col">Nombre del Autorizado</th>
@@ -67,7 +68,10 @@
             %} Comisión de Servicio Vigente {% elif registro.Estatus in [9, 11]
             %} Comisión de Servicio Vencida {% else %} Activo {% endif %}
           </td>
-
+          <td>
+            {{ registro.typeNomina if registro.typeNomina else "Sin tipo de
+            nómina" }}
+          </td>
           <td>{{ registro.Time_box }}</td>
 
           <td>

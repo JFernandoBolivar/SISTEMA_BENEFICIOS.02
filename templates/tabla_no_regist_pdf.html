@@ -6,7 +6,7 @@
         margin: -3.5em auto;
         justify-content: center;
         
-        transform: translateX(-2.5em);
+        /* transform: translateX(-2.5em); */
       }
       .table {
         font-size: 5px;
@@ -14,6 +14,7 @@
         border-collapse: collapse;
         text-align: center;
         table-layout: fixed;
+       
       }
      
        .list {
@@ -32,7 +33,7 @@
       }
       .table th:first-child,
       .table td:first-child {
-        width: 2%;
+        width: 4%;
       }
       .table th {
         background-color: #f2f2f2;
@@ -121,9 +122,10 @@
               <th scope="col">Codigo</th>
               <th scope="col">Nombre Completo</th>
               <th scope="col">Ubicación Fisica</th>
-             <th scope="col">Ubicación administrativa</th>
-             <th scope="col">Estado</th>
-          <th scope="col">Estatus</th>
+              <th scope="col">Ubicación administrativa</th>
+              <th scope="col">Estatus</th>
+              <th scope="col">Tipo de nómina</th>
+           
               
             </tr>
           </thead>
@@ -141,7 +143,7 @@
           <td>
             {{registro.Location_Admin if registro.Location_Admin else " "}}
           </td>
-             <td>{{registro.ESTADOS if registro.ESTADOS else " " }}</td>
+            
               <td>
             {% if registro.Estatus == 1 %} Activo {% elif registro.Estatus == 2
             %} Pasivo {% elif registro.Estatus == 3 or registro.Estatus == 4 %}
@@ -152,7 +154,10 @@
             registro.Estatus in [9,11] %} Comisión de Servicio Vencida {% else
             %} Desconocido {% endif %}
           </td>
-          {% else %}
+          <td>{{registro.typeNomina if registro.typeNomina else " " }}</td>
+          
+     
+           {% else %}
             </tr>
             {% endfor %} {% if not registros %}
             <tr>

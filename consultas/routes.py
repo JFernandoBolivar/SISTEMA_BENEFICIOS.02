@@ -96,6 +96,8 @@ def consult():
                 p.Location_Admin, 
                 p.Estatus,
                 p.ESTADOS,
+                p.typeNomina,
+                p.autorizacion,
                 EXISTS(
                     SELECT 1 
                     FROM delivery d 
@@ -118,6 +120,7 @@ def consult():
             )
 
         estatus = data_exit['Estatus']
+        autorizacion = data_exit['autorizacion']
         # Manejo de diferentes estatus
         if estatus in [3, 4, 5, 6]:
             mensajes = {
@@ -143,7 +146,7 @@ def consult():
                 mostrar_boton=True
             )
         
-        elif estatus in [1, 2, 10, 11]:
+        elif estatus in [1, 2, 10, 11] and autorizacion:
             tipo = 'activos' if estatus == 1 else 'pasivos'
             stats = get_stats(cursor, tipo_usuario=tipo)
             cursor.close()
@@ -195,7 +198,9 @@ def registrar():
         titular = cursor.fetchone()
         if not titular:
             raise Exception("La cédula no se encuentra en la tabla personal")
-
+        
+        type_nomina = titular.get('typeNomina', '')
+        
         # Validar autorizado único solo si el titular es pasivo (estatus == 2)
         if titular['Estatus'] == 2 and CIFamily:
             cursor.execute('SELECT COUNT(*) AS total FROM autorizados WHERE Cedula = %s', (CIFamily,))
@@ -219,8 +224,8 @@ def registrar():
         
         cursor.execute('''
             INSERT INTO delivery (Time_box, Staff_ID, Observation, Data_ID, Lunch) 
-            VALUES (%s, %s, %s, %s, %s)
-        ''', (hora_entrega, cedula_personal, observacion, titular['Cedula'], lunch))
+            VALUES (%s, %s, %s,%s, %s)
+        ''', (hora_entrega, cedula_personal, observacion,titular['Cedula'], lunch))
 
         # Registrar autorizado si corresponde y guardar en historial con datos del autorizado
         if CIFamily and nameFamily:
@@ -240,9 +245,10 @@ def registrar():
                     Cedula_autorizado,
                     Name_autorizado,
                     Estatus,
+                    typeNomina
                     Observation
                 ) 
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s,%s, %s, %s, %s, %s, %s, %s)
             ''', (
                 session['cedula'],
                 session['username'],
@@ -253,6 +259,7 @@ def registrar():
                 CIFamily,
                 nameFamily,
                 titular['Estatus'],
+                type_nomina,
                 observacion
             ))
         else:
@@ -268,9 +275,10 @@ def registrar():
                     Cedula_autorizado,
                     Name_autorizado,
                     Estatus,
+                    typeNomina,
                     Observation
                 ) 
-                VALUES (%s, %s, %s, %s, %s, %s, NULL, NULL, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, NULL, NULL, %s,%s, %s)
             ''', (
                 session['cedula'],
                 session['username'],
@@ -279,6 +287,7 @@ def registrar():
                 titular['Cedula'],
                 titular['Name_Com'],
                 titular['Estatus'],
+                type_nomina,
                 observacion
             ))
         

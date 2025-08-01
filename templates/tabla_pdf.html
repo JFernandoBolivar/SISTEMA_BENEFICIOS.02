@@ -259,6 +259,7 @@
               {% elif registros and registros[0].Estatus == 2 %}
               <th scope="col">Estado</th>
               <th scope="col">Estatus</th>
+              <th scope="col">Tipo de nómina</th>
               {% endif %}
               <th scope="col">Hora de Entrega</th>
               <th scope="col">Cedula del Autorizado</th>
@@ -283,6 +284,7 @@
                 endif %}
               </td>
               {% else %}
+              <td>{{ registro.typeNomina if registro.typeNomina else "Sin tipo de nómina" }}</td>
               <td>{{ registro.Location_Physical }}</td>
               <td>{{ registro.Location_Admin }}</td>
               {% endif %}

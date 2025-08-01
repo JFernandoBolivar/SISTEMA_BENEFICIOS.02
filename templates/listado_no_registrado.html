@@ -20,13 +20,10 @@
       >
       <h1 class="fs-3 report mt-1 text-center">Reporte General de Entregas</h1>
 
-      <form
-  method="get"
-  action="{{ url_for('reportes.listado_no_regist_pdf') }}"
-  class="form-fecha mt-3"
->
+   <form method="get" action="{{ url_for('reportes.listado_no_regist_pdf') }}" class="form-fecha mt-3">
+ 
   <div class="row g-2 align-items-center">
-    <div class="col-12 col-md-8">
+    <div class="col-12 col-md-5">
       <select name="filtro" class="form-control">
         <option value="todos" {% if filtro == 'todos' %}selected{% endif %}>Todos los estatus</option>
         <option value="activos" {% if filtro == 'activos' %}selected{% endif %}>Activos</option>
@@ -34,22 +31,34 @@
         <option value="fuera_pais" {% if filtro == 'fuera_pais' %}selected{% endif %}>Fuera del país</option>
         <option value="fallecidos" {% if filtro == 'fallecidos' %}selected{% endif %}>Fallecidos</option>
         <option value="requiere_confirmacion" {% if filtro == 'requiere_confirmacion' %}selected{% endif %}>Se requiere confirmación</option>
-        <option value="suspendidos_tramite" {% if filtro == 'suspendidos_tramite' %}selected{% endif %}>Suspendidos por trámites administrativos</option>
-        <option value="comision_vigente" {% if filtro == 'comision_vigente' %}selected{% endif %}>Comisión de Servicio (vigente)</option>
-        <option value="comision_vencida" {% if filtro == 'comision_vencida' %}selected{% endif %}>Comisión de Servicio (vencida)</option>
+        <option value="suspendidos_tramite" {% if filtro == 'suspendidos_tramite' %}selected{% endif %}>Suspendidos por trámites</option>
+        <option value="comision_vigente" {% if filtro == 'comision_vigente' %}selected{% endif %}>Comisión (vigente)</option>
+        <option value="comision_vencida" {% if filtro == 'comision_vencida' %}selected{% endif %}>Comisión (vencida)</option>
       </select>
     </div>
 
-    <div class="col-4 col-md-4">
-      <button
-        type="submit"
-        target="_blank"
-        class="btn btn-dark w-100 w-md-auto"
-      >
-        Descargar PDF
+    <div class="col-12 col-md-5">
+      <select name="tipo_nomina" class="form-control" title="Seleccione tipos de nómina (opcional)">
+        <option value="">Todos los tipos de nómina</option>
+        <option value="JUBILADO EMPLEADO">JUBILADO EMPLEADO</option>
+        <option value="JUBILADO EXTINTA DISIP">JUBILADO EXTINTA DISIP</option>
+        <option value="JUBILADO OBRERO">JUBILADO OBRERO</option>
+        <option value="JUBILADO POLICIA METROPOLITANO (ADMI)">JUB. POLICIA METROPOLITANO</option>
+        <option value="PENSIONADO INCAP/VIUDA EXTINTA DISIP">PENS. INCAP/VIUDA DISIP</option>
+        <option value="PENSIONADO INCAPACIDAD EMPLEADO">PENS. INCAPACIDAD EMPLEADO</option>
+        <option value="PENSIONADO SOBREVIVIENTE">PENS. SOBREVIVIENTE</option>
+        <option value="PENSIONADOS MENORES EXTINTA DISIP">PENS. MENORES DISIP</option>
+      </select>
+     
+    </div>
+
+      <div class=" justify-content-center ">
+      <button type="submit" target="_blank" class="btn btn-dark w-100">
+        <i class="fas fa-file-pdf"></i> Descargar PDF
       </button>
     </div>
   </div>
+ 
 </form>
     </div>
     <a class="btn btn-dark" id="PDFPersonal"
@@ -81,8 +90,9 @@
           <th scope="col">Nombre Completo</th>
           <th scope="col">Ubicación Fisica</th>
           <th scope="col">Ubicación administrativa</th>
-          <th scope="col">Estado</th>
           <th scope="col">Estatus</th>
+          <th scope="col">Tipo de nomina </th>
+          <th scope="col">Estado</th>
         </tr>
       </thead>
       <tbody>
@@ -98,7 +108,7 @@
           <td>
             {{registro.Location_Admin if registro.Location_Admin else " "}}
           </td>
-          <td>{{registro.ESTADOS if registro.ESTADOS else " " }}</td>
+          
           <td>
             {% if registro.Estatus == 1 %} Activo {% elif registro.Estatus == 2
             %} Pasivo {% elif registro.Estatus == 5 %} Fuera del país {% elif
@@ -108,8 +118,13 @@
             Comisión de Servicio (vigente) {% elif registro.Estatus == 9 %}
             Comisión de Servicio (vencida) {% else %} Desconocido {% endif %}
           </td>
+        
+          <td>{{registro.typeNomina if registro.typeNomina else " " }}</td>
+          <td>{{registro.ESTADOS if registro.ESTADOS else " " }}</td>
+          
           {% else %}
         </tr>
+        
         {% endfor %} {% if not registros %}
         <tr>
           <td colspan="14">No hay datos disponibles</td>

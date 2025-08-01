@@ -46,7 +46,7 @@ def procesar_datos(df):
         df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0).astype(int)
     
     # Convertir columnas de texto
-    texto = ["Name_Com", "Location_Physical", "Location_Admin", "ESTADOS"]
+    texto = ["Name_Com", "Location_Physical", "Location_Admin", "ESTADOS","typeNomina"]
     for col in texto:
         df[col] = df[col].astype(str).str.strip().replace('nan', '')
     
@@ -55,6 +55,13 @@ def procesar_datos(df):
         df["manually"] = 0
     else:
         df["manually"] = df["manually"].fillna(0).astype(int)
+        
+    
+    if "autorizacion" not in df.columns:
+        df["autorizacion"] = True
+    else:
+        # Si ya existe, asegurarse que es booleana
+        df["autorizacion"] = df["autorizacion"].astype(bool)
     
     return df
 
@@ -83,11 +90,12 @@ def cargar_excel_a_db(file):
                 cursor.execute('''
                     UPDATE personal SET 
                         Name_Com = %s, Code = %s, Location_Physical = %s, 
-                        Location_Admin = %s, manually = %s, Estatus = %s, ESTADOS = %s
+                        Location_Admin = %s, manually = %s, Estatus = %s,autorizacion = %s,typeNomina = %s, ESTADOS = %s
                     WHERE ID = %s
                 ''', (
                     row['Name_Com'], row['Code'], row['Location_Physical'],
-                    row['Location_Admin'], row['manually'], row['Estatus'],
+                    row['Location_Admin'], row['manually'], row['Estatus'], row['autorizacion'],
+                    row['typeNomina'],
                     row['ESTADOS'], personal['ID']
                 ))
                 stats['personal']['actualizados'] += 1
@@ -97,12 +105,12 @@ def cargar_excel_a_db(file):
                 cursor.execute('''
                     INSERT INTO personal 
                     (Cedula, Name_Com, Code, Location_Physical, Location_Admin, 
-                     manually, Estatus, ESTADOS)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                     manually, Estatus,autorizacion,typeNomina, ESTADOS)
+                    VALUES (%s, %s, %s, %s,%s, %s,%s, %s, %s, %s)
                 ''', (
                     row['Cedula'], row['Name_Com'], row['Code'],
                     row['Location_Physical'], row['Location_Admin'], 
-                    row['manually'], row['Estatus'], row['ESTADOS']
+                    row['manually'], row['Estatus'],row['autorizacion'],row['typeNomina'], row['ESTADOS']
                 ))
                 stats['personal']['insertados'] += 1
                 personal_id = cursor.lastrowid
@@ -180,11 +188,11 @@ def cargar_data():
                 cursor.execute('''
                     UPDATE personal SET 
                         Name_Com = %s, Code = %s, Location_Physical = %s, 
-                        Location_Admin = %s, manually = %s, Estatus = %s, ESTADOS = %s
+                        Location_Admin = %s, manually = %s, Estatus = %s,autorizacion = %s,typeNomina = %s, ESTADOS = %s
                     WHERE Cedula = %s
                 ''', (
                     row['Name_Com'], row['Code'], row['Location_Physical'],
-                    row['Location_Admin'], row['manually'], row['Estatus'],
+                    row['Location_Admin'], row['manually'],row['Estatus'],row['autorizacion'],row['typeNomina'],
                     row['ESTADOS'], row['Cedula']
                 ))
                 stats['personal']['actualizados'] += 1
@@ -194,12 +202,12 @@ def cargar_data():
                 cursor.execute('''
                     INSERT INTO personal 
                     (Cedula, Name_Com, Code, Location_Physical, Location_Admin, 
-                     manually, Estatus, ESTADOS)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                     manually, Estatus,autorizacion,typeNomina,ESTADOS)
+                    VALUES (%s, %s, %s, %s, %s, %s,%s, %s, %s,%s)
                 ''', (
                     row['Cedula'], row['Name_Com'], row['Code'],
                     row['Location_Physical'], row['Location_Admin'], 
-                    row['manually'], row['Estatus'], row['ESTADOS']
+                    row['manually'], row['Estatus'],row['autorizacion'],row['typeNomina'], row['ESTADOS']
                 ))
                 stats['personal']['insertados'] += 1
                 beneficiado_cedula = row['Cedula']

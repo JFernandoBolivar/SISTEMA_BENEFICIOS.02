@@ -8,7 +8,7 @@
     <button class="exit_tabla">
       <i class="bx bx-log-out"></i><label class="salir">Salir</label>
     </button>
-    <!-- <div class="alert windwsPDF mse" role="alert">
+   <div class="alert windwsPDF mse" role="alert">
       <a
         id="exit"
         class="btn me-3"
@@ -19,78 +19,60 @@
         Listado de beneficios entregados
       </h1>
       <hr class="my-3" />
-      <form
-        method="get"
-        action="{{ url_for('gestion_usuarios.reporte_personalPDF') }}"
-        class="form-fecha mt-3"
-      >
-        <div class="row g-2">
-          
-          <div class="col-12 col-md-6">
+      <form method="get" action="{{ url_for('gestion_usuarios.reporte_personalPDF') }}" class="form-fecha mt-3">
+    <div class="row g-2">
+        <div class="col-12 col-md-6">
             <label for="filtroCedula" class="form-label">Cédula del beneficiario</label>
-            <input
-              type="text"
-              id="filtroCedula"
-              name="cedula"
-              placeholder="Cédula beneficiario"
-              value="{{ cedula }}"
-              class="form-control"
-            />
-          </div>
-          <div class="col-12 col-md-6">
+            <input type="text" id="filtroCedula" name="cedula" placeholder="Cédula beneficiario" 
+                   value="{{ cedula }}" class="form-control" />
+        </div>
+        <div class="col-12 col-md-6">
             <label for="filtroFecha" class="form-label">Día de la entrega</label>
-            <input
-              type="date"
-              id="filtroFecha"
-              name="fecha"
-              value="{{ fecha }}"
-              class="form-control"
-              placeholder="Fecha de la entrega"
-            />
-          </div>
-          <div class="col-12 col-md-6">
+            <input type="date" id="filtroFecha" name="fecha" value="{{ fecha }}" 
+                   class="form-control" placeholder="Fecha de la entrega" />
+        </div>
+        <div class="col-12 col-md-6">
             <label for="filtroMes" class="form-label">Mes y año</label>
-            <input
-              type="month"
-              id="filtroMes"
-              name="mes"
-              value="{{ mes }}"
-              class="form-control"
-              placeholder="Mes"
-              min="2025-01"
-              max="2100-12"
-            />
-          </div>
-          <div class="col-12 col-md-6">
+            <input type="month" id="filtroMes" name="mes" value="{{ mes }}" 
+                   class="form-control" placeholder="Mes" min="2025-01" max="2100-12" />
+        </div>
+        <div class="col-12 col-md-6">
             <label for="filtroEstatus" class="form-label">Estatus</label>
             <select id="filtroEstatus" name="estatus" class="form-control">
-              <option value="">Todos los estatus</option>
-              <option value="activo" {% if estatus == 'activo' %}selected{% endif %}>Activo</option>
-              <option value="pasivo" {% if estatus == 'pasivo' %}selected{% endif %}>Pasivo</option>
-              <option value="vigente" {% if estatus == 'vigente' %}selected{% endif %}>Comisión Vigente</option>
-              <option value="vencida" {% if estatus == 'vencida' %}selected{% endif %}>Comisión Vencida</option>
+                <option value="">Todos los estatus</option>
+                <option value="activo" {% if estatus == 'activo' %}selected{% endif %}>Activo</option>
+                <option value="pasivo" {% if estatus == 'pasivo' %}selected{% endif %}>Pasivo</option>
+                <option value="vigente" {% if estatus == 'vigente' %}selected{% endif %}>Comisión Vigente</option>
+                <option value="vencida" {% if estatus == 'vencida' %}selected{% endif %}>Comisión Vencida</option>
             </select>
-          </div>
-          <div class="col-12 d-flex justify-content-center mt-3">
-            <button
-              type="submit"
-              name="pdf"
-              value="1"
-              class="btn btn-dark w-100 w-md-auto"
-            >
-              Descargar PDF
-            </button>
-          </div>
         </div>
-      </form>
-    </div> -->
-    <a
-      href="{{ url_for('reportes.listado_pdf') }}"
-      class="btn btn-primary"
-      id="downloadPDF1"
-      target="_blank"
+       <div class="col-12 col-md-6">
+            <label for="filtroTipoNomina" class="form-label">Tipo de Nómina (Opcional)</label>
+            <select id="filtroTipoNomina" name="tipo_nomina" class="form-control">
+                <option value="">Todos los tipos</option>
+                <option value="JUBILADO EMPLEADO">JUBILADO EMPLEADO</option>
+                <option value="JUBILADO EXTINTA DISIP">JUBILADO EXTINTA DISIP</option>
+                <option value="JUBILADO OBRERO">JUBILADO OBRERO</option>
+                <option value="JUBILADO POLICIA METROPOLITANO (ADMI)">JUBILADO POLICIA METROPOLITANO (ADMI)</option>
+                <option value="PENSIONADO INCAP/VIUDA EXTINTA DISIP">PENSIONADO INCAP/VIUDA EXTINTA DISIP</option>
+                <option value="PENSIONADO INCAPACIDAD EMPLEADO">PENSIONADO INCAPACIDAD EMPLEADO</option>
+                <option value="PENSIONADO SOBREVIVIENTE">PENSIONADO SOBREVIVIENTE</option>
+                <option value="PENSIONADOS MENORES EXTINTA DISIP">PENSIONADOS MENORES EXTINTA DISIP</option>
+            </select>
+            
+        </div>
+        <div class="col-12 d-flex justify-content-center mt-3">
+            <button type="submit" name="pdf" value="1" class="btn btn-dark w-100 w-md-auto">
+                Descargar PDF
+            </button>
+        </div>
+    </div>
+</form>
+    </div>
+    <a class="btn btn-dark" id="PDFPersonal"
       >Descargar <i class="bx bxs-download fs-3"></i
     ></a>
+  
   </div>
   <h1>Listado de beneficios entregados</h1>
   <div class="contentBusc">
@@ -133,6 +115,7 @@
           <th scope="col">Cédula del personal</th>
           <th scope="col">Nombre del personal</th>
           <th scope="col">Estatus</th>
+          <th scope="col">Tipo de nómina</th>
           <th scope="col">Fecha de la entrega</th>
           <th scope="col">Cédula del registrador</th>
           <th scope="col">Nombre del registrador</th>
@@ -154,6 +137,7 @@
             Comisión de Servicio Vigente {% elif action.Estatus in [9, 11] %}
             Comisión de Servicio Vencida {% else %} Activo {% endif %}
           </td>
+          <td>{{ action.typeNomina if action.typeNomina else ' ' }}</td>
           <td>{{ action.time_login if action.time_login else ' '}}</td>
           <td>{{ action.cedula }}</td>
           <td>{{ action.Name_user }}</td>

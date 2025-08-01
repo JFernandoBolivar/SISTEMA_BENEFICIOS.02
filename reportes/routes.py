@@ -347,7 +347,7 @@ def listado_no_registrado():
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cursor.execute('''
         SELECT personal.Cedula, personal.Name_Com, personal.Location_Physical, 
-               personal.Estatus, personal.ESTADOS, personal.Code, personal.Location_Admin
+               personal.Estatus, personal.ESTADOS, personal.Code, personal.Location_Admin,personal.typeNomina
         FROM personal
         LEFT JOIN delivery ON personal.Cedula = delivery.Data_ID
         WHERE delivery.ID IS NULL
@@ -366,71 +366,86 @@ def listado_no_registrado():
 # listado de las entregas faltantes pdf
 @reportes_bp.route("/listado_no_regist_pdf", methods=["GET", "POST"])
 def listado_no_regist_pdf():
+    # Obtener parámetros del request
     filtro = request.args.get('filtro', 'todos')
+    tipos_nomina = request.args.getlist('tipo_nomina')
     usuario = session.get('username', 'Usuario')
     fecha_actual = datetime.now().strftime('%d/%m/%Y %H:%M')
+    
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     
+    # Consulta base
     query = '''
         SELECT personal.Cedula, personal.Name_Com, personal.Location_Physical, 
-               personal.Location_Admin, personal.Code, personal.Estatus, personal.ESTADOS
+               personal.Location_Admin, personal.Code, personal.Estatus, 
+               personal.ESTADOS, personal.typeNomina
         FROM personal
         LEFT JOIN delivery ON personal.Cedula = delivery.Data_ID
         WHERE delivery.ID IS NULL
     '''
-    if filtro == 'activos':
-        query += ' AND personal.Estatus = 1'
-    elif filtro == 'pasivos':
-        query += ' AND personal.Estatus = 2'
-    elif filtro == 'fuera_pais':
-        query += ' AND personal.Estatus = 5'
-    elif filtro == 'fallecidos':
-        query += ' AND personal.Estatus = 6'
-    elif filtro == 'requiere_confirmacion':
-        query += ' AND personal.Estatus = 7'
-    elif filtro == 'suspendidos_tramite':
-        query += ' AND personal.Estatus = 3'
-    elif filtro == 'comision_vigente':
-        query += ' AND personal.Estatus = 10'
-    elif filtro == 'comision_vencida':
-        query += ' AND personal.Estatus = 9'
-
-    cursor.execute(query)
+    
+    # Mapeo de filtros de estatus
+    filtros_estatus = {
+        'activos': 'personal.Estatus = 1',
+        'pasivos': 'personal.Estatus = 2',
+        'fuera_pais': 'personal.Estatus = 5',
+        'fallecidos': 'personal.Estatus = 6',
+        'requiere_confirmacion': 'personal.Estatus = 7',
+        'suspendidos_tramite': 'personal.Estatus = 3',
+        'comision_vigente': 'personal.Estatus = 10',
+        'comision_vencida': 'personal.Estatus = 9'
+    }
+    
+    params = []
+    
+    # Aplicar filtro de estatus si no es 'todos'
+    if filtro in filtros_estatus:
+        query += f' AND {filtros_estatus[filtro]}'
+    
+    # Aplicar filtro de tipo de nómina solo si se seleccionó alguno
+    if tipos_nomina and any(tipo.strip() for tipo in tipos_nomina):
+        placeholders = ','.join(['%s'] * len(tipos_nomina))
+        query += f" AND personal.typeNomina IN ({placeholders})"
+        params.extend(tipos_nomina)
+    
+    # Ejecutar consulta principal
+    cursor.execute(query, params if params else None)
     registros = cursor.fetchall()
     
-    filtro_count = ''
-    if filtro == 'activos':
-        filtro_count = 'AND personal.Estatus = 1'
-    elif filtro == 'pasivos':
-        filtro_count = 'AND personal.Estatus = 2'
-    elif filtro == 'fuera_pais':
-        filtro_count = 'AND personal.Estatus = 5'
-    elif filtro == 'fallecidos':
-        filtro_count = 'AND personal.Estatus = 6'
-    elif filtro == 'requiere_confirmacion':
-        filtro_count = 'AND personal.Estatus = 7'
-    elif filtro == 'suspendidos_tramite':
-        filtro_count = 'AND personal.Estatus = 3'
-    elif filtro == 'comision_vigente':
-        filtro_count = 'AND personal.Estatus = 10'
-    elif filtro == 'comision_vencida':
-        filtro_count = 'AND personal.Estatus = 9'
-
-    cursor.execute(f'''
+    # Consulta para el conteo total
+    count_query = '''
         SELECT COUNT(*) AS total_no_entregados
         FROM personal
         LEFT JOIN delivery ON personal.Cedula = delivery.Data_ID
         WHERE delivery.ID IS NULL
-        {filtro_count}
-    ''')
+    '''
+    
+    count_params = []
+    
+    if filtro in filtros_estatus:
+        count_query += f' AND {filtros_estatus[filtro]}'
+    
+    if tipos_nomina and any(tipo.strip() for tipo in tipos_nomina):
+        placeholders = ','.join(['%s'] * len(tipos_nomina))
+        count_query += f" AND personal.typeNomina IN ({placeholders})"
+        count_params.extend(tipos_nomina)
+    
+    cursor.execute(count_query, count_params if count_params else None)
     total_no_entregados = cursor.fetchone()['total_no_entregados']
     cursor.close()
     
-    rendered = render_template('tabla_no_regist_pdf.html', registros=registros, 
-                              total_no_entregados=total_no_entregados, filtro=filtro,usuario=usuario,
-        fecha_actual=fecha_actual)
+    # Generar PDF
+    rendered = render_template(
+        'tabla_no_regist_pdf.html',
+        registros=registros,
+        total_no_entregados=total_no_entregados,
+        filtro=filtro,
+        tipo_nomina_seleccionados=tipos_nomina,
+        usuario=usuario,
+        fecha_actual=fecha_actual
+    )
+    
     pdf = HTML(string=rendered).write_pdf()
-
     response = make_response(pdf)
     response.headers['Content-Type'] = 'application/pdf'
     response.headers['Content-Disposition'] = 'inline; filename=listado.pdf'
@@ -446,7 +461,7 @@ def listado_no_registrado_excel():
     filtro = request.form.get('filtro', 'todos')
     query = '''
         SELECT personal.Cedula, personal.Name_Com, personal.Location_Physical, 
-               personal.Location_Admin, personal.Code, personal.Estatus, personal.ESTADOS
+               personal.Location_Admin, personal.Code, personal.Estatus, personal.ESTADOS,personal.typeNomina
         FROM personal
         LEFT JOIN delivery ON personal.Cedula = delivery.Data_ID
         WHERE delivery.ID IS NULL
@@ -576,11 +591,19 @@ def reporte():
 
     query = '''
         SELECT DATE(time_login) as fecha,
-           SUM(CASE WHEN action LIKE 'Marco como entregado el beneficio a%%' AND Estatus = 1 THEN 1 ELSE 0 END) as total_activos,
-           SUM(CASE WHEN action LIKE 'Marco como entregado el beneficio a%%' AND Estatus = 2 THEN 1 ELSE 0 END) as total_pasivos,
-           SUM(CASE WHEN action LIKE 'Marco como entregado el beneficio a%%' AND Estatus IN (9, 11) THEN 1 ELSE 0 END) as total_comision_vencida,
-           SUM(CASE WHEN action LIKE 'Marco como entregado el beneficio a%%' AND Estatus = 10 THEN 1 ELSE 0 END) as total_comision_vigente,
-           SUM(CASE WHEN action LIKE 'Marco como entregado el beneficio a%%' THEN 1 ELSE 0 END) as total_entregas
+           SUM(CASE WHEN action LIKE 'Marco como entregado%%' AND Estatus = 1 THEN 1 ELSE 0 END) as total_activos,
+           SUM(CASE WHEN action LIKE 'Marco como entregado%%' AND Estatus = 2 THEN 1 ELSE 0 END) as total_pasivos,
+           SUM(CASE WHEN action LIKE 'Marco como entregado%%' AND Estatus IN (9, 11) THEN 1 ELSE 0 END) as total_comision_vencida,
+           SUM(CASE WHEN action LIKE 'Marco como entregado%%' AND Estatus = 10 THEN 1 ELSE 0 END) as total_comision_vigente,
+           SUM(CASE WHEN action LIKE 'Marco como entregado%%' AND typeNomina = 'JUBILADO EMPLEADO' THEN 1 ELSE 0 END) as total_jubilado_empleado,
+           SUM(CASE WHEN action LIKE 'Marco como entregado%%' AND typeNomina = 'JUBILADO EXTINTA DISIP' THEN 1 ELSE 0 END) as total_jubilado_extinto_disip,
+           SUM(CASE WHEN action LIKE 'Marco como entregado%%' AND typeNomina = 'JUBILADO OBRERO' THEN 1 ELSE 0 END) as total_jubilado_obrero,
+           SUM(CASE WHEN action LIKE 'Marco como entregado%%' AND typeNomina = 'JUBILADO POLICIA METROPOLITANO (ADMI)' THEN 1 ELSE 0 END) as total_policia_metropolitano_admi,
+           SUM(CASE WHEN action LIKE 'Marco como entregado%%' AND typeNomina = 'PENSIONADO INCAP/VIUDA EXTINTA DISIP' THEN 1 ELSE 0 END) as total_pensionado_incap_viuda_extinto_disip,
+           SUM(CASE WHEN action LIKE 'Marco como entregado%%' AND typeNomina = 'PENSIONADO INCAPACIDAD EMPLEADO' THEN 1 ELSE 0 END) as total_pensionado_incapacidad_empleado,
+           SUM(CASE WHEN action LIKE 'Marco como entregado%%' AND typeNomina = 'PENSIONADO SOBREVIVIENTE' THEN 1 ELSE 0 END) as total_sobreviviente,
+           SUM(CASE WHEN action LIKE 'Marco como entregado%%' AND typeNomina = 'PENSIONADOS MENORES EXTINTA DISIP' THEN 1 ELSE 0 END) as total_pensionado_menores_extinto_disip,
+           SUM(CASE WHEN action LIKE 'Marco como entregado%%' THEN 1 ELSE 0 END) as total_entregas
         FROM user_history
     '''
     params = []
@@ -621,6 +644,14 @@ def reporte():
     total_pasivos = sum(reporte['total_pasivos'] for reporte in reportes)
     total_comision_vencida = sum(reporte['total_comision_vencida'] for reporte in reportes)
     total_comision_vigente = sum(reporte['total_comision_vigente'] for reporte in reportes)
+    total_jubilado_empleado = sum(reporte['total_jubilado_empleado'] for reporte in reportes)
+    total_jubilado_extinto_disip = sum(reporte['total_jubilado_extinto_disip'] for reporte in reportes)
+    total_jubilado_obrero = sum(reporte['total_jubilado_obrero'] for reporte in reportes)
+    total_policia_metropolitano_admi = sum(reporte['total_policia_metropolitano_admi'] for reporte in reportes)
+    total_pensionado_incap_viuda_extinto_disip = sum(reporte['total_pensionado_incap_viuda_extinto_disip'] for reporte in reportes)
+    total_pensionado_incapacidad_empleado = sum(reporte['total_pensionado_incapacidad_empleado'] for reporte in reportes)
+    total_sobreviviente = sum(reporte['total_sobreviviente'] for reporte in reportes)
+    total_pensionado_menores_extinto_disip = sum(reporte['total_pensionado_menores_extinto_disip'] for reporte in reportes) 
     total_apoyo = sum(reporte.get('total_apoyo', 0) for reporte in reportes)
     total_entregas_con_apoyo = sum(reporte['total_entregas_con_apoyo'] for reporte in reportes)
     cursor.close()
@@ -638,6 +669,14 @@ def reporte():
         total_comision_vencida=total_comision_vencida,
         total_comision_vigente=total_comision_vigente,
         total_apoyo=total_apoyo,
+        total_jubilado_empleado=total_jubilado_empleado,
+        total_jubilado_extinto_disip=total_jubilado_extinto_disip,
+        total_jubilado_obrero=total_jubilado_obrero,
+        total_policia_metropolitano_admi=total_policia_metropolitano_admi,
+        total_pensionado_incap_viuda_extinto_disip=total_pensionado_incap_viuda_extinto_disip,
+        total_pensionado_incapacidad_empleado=total_pensionado_incapacidad_empleado,
+        total_sobreviviente=total_sobreviviente,
+        total_pensionado_menores_extinto_disip=total_pensionado_menores_extinto_disip,  
         total_entregas_con_apoyo=total_entregas_con_apoyo,
         mes=mes,
         anio=anio
@@ -666,11 +705,19 @@ def reporte_pdf():
 
     query = '''
         SELECT DATE(time_login) as fecha,
-               SUM(CASE WHEN action LIKE 'Marco como entregado el beneficio a%%' AND Estatus = 1 THEN 1 ELSE 0 END) as total_activos,
-               SUM(CASE WHEN action LIKE 'Marco como entregado el beneficio a%%' AND Estatus = 2 THEN 1 ELSE 0 END) as total_pasivos,
-               SUM(CASE WHEN action LIKE 'Marco como entregado el beneficio a%%' AND Estatus = 10 THEN 1 ELSE 0 END) as total_comision_vigente,
-               SUM(CASE WHEN action LIKE 'Marco como entregado el beneficio a%%' AND Estatus IN (9, 11) THEN 1 ELSE 0 END) as total_comision_vencida,
-               SUM(CASE WHEN action LIKE 'Marco como entregado el beneficio a%%' THEN 1 ELSE 0 END) as total_entregas
+               SUM(CASE WHEN action LIKE 'Marco como entregado%%' AND Estatus = 1 THEN 1 ELSE 0 END) as total_activos,
+               SUM(CASE WHEN action LIKE 'Marco como entregado%%' AND Estatus = 2 THEN 1 ELSE 0 END) as total_pasivos,
+               SUM(CASE WHEN action LIKE 'Marco como entregado%%' AND Estatus = 10 THEN 1 ELSE 0 END) as total_comision_vigente,
+               SUM(CASE WHEN action LIKE 'Marco como entregado%%' AND Estatus IN (9, 11) THEN 1 ELSE 0 END) as total_comision_vencida,
+               SUM(CASE WHEN action LIKE 'Marco como entregado%%' AND typeNomina = 'JUBILADO EMPLEADO' THEN 1 ELSE 0 END) as total_jubilado_empleado,
+               SUM(CASE WHEN action LIKE 'Marco como entregado%%' AND typeNomina = 'JUBILADO EXTINTA DISIP' THEN 1 ELSE 0 END) as total_jubilado_extinto_disip,
+               SUM(CASE WHEN action LIKE 'Marco como entregado%%' AND typeNomina = 'JUBILADO OBRERO' THEN 1 ELSE 0 END) as total_jubilado_obrero,
+               SUM(CASE WHEN action LIKE 'Marco como entregado%%' AND typeNomina = 'JUBILADO POLICIA METROPOLITANO (ADMI)' THEN 1 ELSE 0 END) as total_policia_metropolitano_admi,
+               SUM(CASE WHEN action LIKE 'Marco como entregado%%' AND typeNomina = 'PENSIONADO INCAP/VIUDA EXTINTA DISIP' THEN 1 ELSE 0 END) as total_pensionado_incap_viuda_extinto_disip,
+               SUM(CASE WHEN action LIKE 'Marco como entregado%%' AND typeNomina = 'PENSIONADO INCAPACIDAD EMPLEADO' THEN 1 ELSE 0 END) as total_pensionado_incapacidad_empleado,
+               SUM(CASE WHEN action LIKE 'Marco como entregado%%' AND typeNomina = 'PENSIONADO SOBREVIVIENTE' THEN 1 ELSE 0 END) as total_sobreviviente,
+               SUM(CASE WHEN action LIKE 'Marco como entregado%%' AND typeNomina = 'PENSIONADOS MENORES EXTINTA DISIP' THEN 1 ELSE 0 END) as total_pensionado_menores_extinto_disip,
+               SUM(CASE WHEN action LIKE 'Marco como entregado%%' THEN 1 ELSE 0 END) as total_entregas
         FROM user_history
     '''
     params = []
@@ -710,6 +757,14 @@ def reporte_pdf():
     total_pasivos = sum(r['total_pasivos'] for r in reportes)
     total_comision_vigente = sum(r['total_comision_vigente'] for r in reportes)
     total_comision_vencida = sum(r['total_comision_vencida'] for r in reportes)
+    total_jubilado_empleado = sum(reporte['total_jubilado_empleado'] for reporte in reportes)
+    total_jubilado_extinto_disip = sum(reporte['total_jubilado_extinto_disip'] for reporte in reportes)
+    total_jubilado_obrero = sum(reporte['total_jubilado_obrero'] for reporte in reportes)
+    total_policia_metropolitano_admi = sum(reporte['total_policia_metropolitano_admi'] for reporte in reportes)
+    total_pensionado_incap_viuda_extinto_disip = sum(reporte['total_pensionado_incap_viuda_extinto_disip'] for reporte in reportes)
+    total_pensionado_incapacidad_empleado = sum(reporte['total_pensionado_incapacidad_empleado'] for reporte in reportes)
+    total_sobreviviente = sum(reporte['total_sobreviviente'] for reporte in reportes)
+    total_pensionado_menores_extinto_disip = sum(reporte['total_pensionado_menores_extinto_disip'] for reporte in reportes)
     total_apoyo = sum(r.get('total_apoyo', 0) for r in reportes)
     total_entregas_con_apoyo = sum(r['total_entregas_con_apoyo'] for r in reportes)
 
@@ -727,6 +782,14 @@ def reporte_pdf():
         total_pasivos=total_pasivos,
         total_comision_vigente=total_comision_vigente,
         total_comision_vencida=total_comision_vencida,
+        total_jubilado_empleado=total_jubilado_empleado,
+        total_jubilado_extinto_disip=total_jubilado_extinto_disip,
+        total_jubilado_obrero=total_jubilado_obrero,
+        total_policia_metropolitano_admi=total_policia_metropolitano_admi,
+        total_pensionado_incap_viuda_extinto_disip=total_pensionado_incap_viuda_extinto_disip,
+        total_pensionado_incapacidad_empleado=total_pensionado_incapacidad_empleado,
+        total_sobreviviente=total_sobreviviente,
+        total_pensionado_menores_extinto_disip=total_pensionado_menores_extinto_disip, 
         total_apoyo=total_apoyo,
         total_entregas_con_apoyo=total_entregas_con_apoyo,
         usuario=usuario,
@@ -740,3 +803,61 @@ def reporte_pdf():
     response.headers['Content-Type'] = 'application/pdf'
     response.headers['Content-Disposition'] = 'inline; filename=reporte.pdf'
     return response
+
+
+
+# nomina personal
+
+@reportes_bp.route("/permisoNomina")
+def nomina_personal():
+    if 'loggedin' not in session:
+        return redirect(url_for('auth.login'))
+
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute('SELECT * FROM personal')
+    nomina_raw = cursor.fetchall()
+    cursor.close()
+
+    # Filtrar registros únicos por Estatus
+    estatus_vistos = set()
+    nomina_filtrada = []
+
+    for n in nomina_raw:
+        if n['typeNomina'] not in estatus_vistos:
+            estatus_vistos.add(n['typeNomina'])
+            nomina_filtrada.append(n)
+
+    return render_template(
+        'nomina.html',
+        nomina=nomina_filtrada
+    )
+
+@reportes_bp.route("/suspender_nomina/<string:typeNomina>", methods=["POST"])
+def suspender_nomina(typeNomina):
+    if 'loggedin' not in session:
+        return redirect(url_for('auth.login'))
+    
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute('UPDATE personal SET autorizacion = %s WHERE typeNomina = %s', (False, typeNomina))
+    mysql.connection.commit()
+    
+    cursor.execute('INSERT INTO user_history (cedula, Name_user, action, time_login) VALUES (%s, %s, %s, %s)', 
+                  (session['cedula'], session['username'], f'Suspendio la entrega a la nomina {typeNomina}', datetime.now()))
+    mysql.connection.commit()
+    cursor.close()
+    return redirect(url_for('reportes.nomina_personal'))
+
+@reportes_bp.route("/activar_nomina/<string:typeNomina>", methods=["POST"])
+def activar_nomina(typeNomina):
+    if 'loggedin' not in session:
+        return redirect(url_for('auth.login'))
+    
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute('UPDATE personal SET autorizacion = %s WHERE typeNomina = %s', (True, typeNomina))
+    mysql.connection.commit()
+    
+    cursor.execute('INSERT INTO user_history (cedula, Name_user, action, time_login) VALUES (%s, %s, %s, %s)', 
+                  (session['cedula'], session['username'], f'Activo la entrega a la nomina {typeNomina}', datetime.now()))
+    mysql.connection.commit()
+    cursor.close()
+    return redirect(url_for('reportes.nomina_personal'))
