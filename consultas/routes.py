@@ -245,7 +245,7 @@ def registrar():
                     Cedula_autorizado,
                     Name_autorizado,
                     Estatus,
-                    typeNomina
+                    typeNomina,
                     Observation
                 ) 
                 VALUES (%s, %s, %s, %s,%s, %s, %s, %s, %s, %s, %s)
@@ -388,7 +388,7 @@ def registrar_apoyo():
         ''', (
             session['cedula'],
             session['username'],
-            f'Registró entrega de apoyo a {ci_autorizado}',
+            f'Registro entrega de apoyo a {ci_autorizado}',
             datetime.now(),
             ci_autorizado,
             nombre_autorizado
@@ -439,7 +439,7 @@ def cambiar_estatus():
 
         cursor.execute(
     'INSERT INTO user_history (cedula, Name_user, action, time_login) VALUES (%s, %s, %s, %s)',
-    (session['cedula'], session['username'], f'Cambió el estatus de la cédula {cedula} de {estatus_actual_nombre} a {nuevo_estatus_nombre}', datetime.now())
+    (session['cedula'], session['username'], f'Cambio el estatus de la cédula {cedula} de {estatus_actual_nombre} a {nuevo_estatus_nombre}', datetime.now())
 )
         mysql.connection.commit()
         

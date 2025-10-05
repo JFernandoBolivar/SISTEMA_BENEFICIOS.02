@@ -12,7 +12,6 @@
       }
       .table {
         margin-top: 2em;
-
         width: 100%;
         border-collapse: collapse;
         text-align: center;
@@ -33,7 +32,7 @@
       }
       .table th:first-child,
       .table td:first-child {
-        width: 6.5%;
+        width: 6%;
       }
       .table th:nth-last-child(2),
       .table td:nth-last-child(2) {
@@ -42,6 +41,7 @@
       .list {
         text-align: center;
         margin-top: 1em;
+        font-size: 4em;
       }
       .logos {
         display: flex;
@@ -50,64 +50,69 @@
         width: 100%;
         margin-bottom: 1em;
       }
-      .logos > p {
-        font-size: 0.6em;
-        margin-left: 0.3em;
-        margin-right: auto;
-        transform: translateY(-2.8em);
-      }
       .mpj {
-        transform: translateX(-37em);
+        transform: translateX(-0.5m);
         margin-right: auto;
         left: 0;
+        font-size: 4em;
+        width: 2;
       }
       .hrr {
         margin-left: auto;
+        font-size: 2.3em;
+        transform: translateX(-0.8em);
       }
       .mpj,
       .hrr {
-        padding-top: 1.5em;
-        width: 3.5em;
+        /* padding-top: -2.5em; */
+        margin-top: -1.5em;
+        width: 6em;
+        /* font-size: 2.5em; */
       }
       .table tbody tr {
         page-break-inside: avoid;
+      }
+      thead {
+        display: table-header-group;
       }
       @page {
         margin: 1cm;
         @bottom-center {
           content: "Pagina " counter(page) " de " counter(pages);
+          /* content: url("{{ url_for("static", filename="css/img/cintillo.png", _external=True) }}"); */
         }
       }
     </style>
   </head>
   <body>
     <div class="container_tabla tabla_pdf">
-      <div class="logos">
-        <p>REPUBLICA BOLIVARIANA DE VENEZUELA</p>
-        <img
-          src="{{ url_for('static', filename='css/img/logo.png', _external=True) }}"
-          class="mpj"
-        />
-        <img
-          src="{{ url_for('static', filename='css/img/logo2.png', _external=True) }}"
-          class="hrr"
-        />
-      </div>
-      <p style="text-align: end; font-size: 13px">
-        <b>Generado por:</b> {{ usuario }}
-      </p>
-      <p style="text-align: end; font-size: 13px">
-        <b>Fecha de generación:</b> {{ fecha_actual }}
-      </p>
-      <h1 class="list">Reporte de Beneficios</h1>
-
       <div class="table-responsive" id="tabla1">
         <table class="table table-striped table-bordered m-auto">
           <thead class="table-dark">
             <tr>
+              <th colspan="15" style="background: none; border: none">
+                <div class="logos">
+                  <img
+                    src="{{ url_for('static', filename='css/img/cintillo.png', _external=True) }}"
+                    class="mpj"
+                  />
+                  <img
+                    src="{{ url_for('static', filename='css/img/logopaz.png', _external=True) }}"
+                    class="hrr"
+                  />
+                </div>
+                <div
+                  style="text-align: end; font-size: 13px; margin-top: 0.3em"
+                >
+                  <b>Generado por:</b> {{ usuario }}<br />
+                  <b>Fecha de generación:</b> {{ fecha_actual }}
+                </div>
+                <h1 class="list">Reporte de Beneficios</h1>
+              </th>
+            </tr>
+            <tr>
               <th>Fecha</th>
               <th>Total Activos</th>
-              <!-- <th>Total Pasivos</th> -->
               <th scope="col">Total Jubilado Empleado</th>
               <th scope="col">Total Jubilado Extinta DISIP</th>
               <th scope="col">Total Jubilado Obrero</th>
@@ -116,6 +121,7 @@
               <th scope="col">Total Pensionado Incapacidad Empleado</th>
               <th scope="col">Total Pensionado Sobreviviento</th>
               <th scope="col">Total Pensionados Menores extinta DISIP</th>
+              <th>Total Pasivos</th>
               <th>Total Comisión Vencida</th>
               <th>Total Comisión Vigente</th>
               <th>de Apoyo</th>
@@ -127,7 +133,6 @@
             <tr>
               <td>{{ reporte.fecha_formateada }}</td>
               <td>{{ reporte.total_activos }}</td>
-              <!-- <td>{{ reporte.total_pasivos }}</td> -->
               <td>{{ reporte.total_jubilado_empleado }}</td>
               <td>{{ reporte.total_jubilado_extinto_disip }}</td>
               <td>{{ reporte.total_jubilado_obrero }}</td>
@@ -136,6 +141,7 @@
               <td>{{ reporte.total_pensionado_incapacidad_empleado}}</td>
               <td>{{ reporte.total_sobreviviente }}</td>
               <td>{{ reporte.total_pensionado_menores_extinto_disip}}</td>
+              <td>{{ reporte.total_pasivos }}</td>
               <td>{{ reporte.total_comision_vencida }}</td>
               <td>{{ reporte.total_comision_vigente }}</td>
               <td>{{ reporte.total_apoyo }}</td>
@@ -145,7 +151,6 @@
             <tr>
               <td><strong>Total General</strong></td>
               <td><strong>{{ total_activos }}</strong></td>
-              <!-- <td><strong>{{ total_pasivos }}</strong></td> -->
               <td><strong>{{ total_jubilado_empleado }}</strong></td>
               <td><strong>{{ total_jubilado_extinto_disip }}</strong></td>
               <td><strong>{{ total_jubilado_obrero }}</strong></td>
@@ -160,6 +165,7 @@
               <td>
                 <strong>{{ total_pensionado_menores_extinto_disip}}</strong>
               </td>
+              <td><strong>{{ total_pasivos }}</strong></td>
               <td><strong>{{ total_comision_vencida }}</strong></td>
               <td><strong>{{ total_comision_vigente }}</strong></td>
               <td><strong>{{ total_apoyo }}</strong></td>

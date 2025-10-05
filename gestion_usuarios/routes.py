@@ -270,7 +270,7 @@ def NuevoUserActivo():
                 session['username'],
                 estatus,
                 observacion,
-                f'Registró un personal activo con cédula {cedula}', 
+                f'Registro un personal activo con cédula {cedula}', 
                 datetime.now()
             ))
             mysql.connection.commit()
@@ -281,14 +281,22 @@ def NuevoUserActivo():
                     VALUES (%s, %s, %s)
                 ''', (cedula, Nombre_Familiar, CIFamiliar))
                 mysql.connection.commit()
+                
+            entregado = 1 if 'entregado' in request.form else 0
 
-            cursor.execute('''
+# Solo registrar en delivery si entregado está marcado
+            if entregado:
+             cursor.execute('''
                 INSERT INTO delivery (Time_box, Data_ID, Staff_ID, Observation, Lunch) 
                 VALUES (%s, %s, %s, %s, %s)
             ''', (horaEntrega, cedula, cedula_personal, observacion, lunch))
-            mysql.connection.commit()
-    
-            cursor.execute('''
+             mysql.connection.commit()
+            
+             CIFamiliar = request.form.get('cedula-family', None)
+             if not CIFamiliar or CIFamiliar == '':
+               CIFamiliar = None
+               
+             cursor.execute('''
                 INSERT INTO user_history 
                 (cedula, Name_user, cedula_personal, Name_personal,Name_autorizado, Cedula_autorizado,Estatus,Observation, action, time_login) 
                 VALUES (%s, %s, %s, %s, %s,%s, %s, %s,%s,%s)
@@ -357,7 +365,7 @@ def NuevoUserPasivo():
                 estatus,
                 type_nomina,
                 observacion,
-                f'Registró un personal pasivo con cédula {cedula}', 
+                f'Registro un personal pasivo con cédula {cedula}', 
                 datetime.now()
             ))
             mysql.connection.commit()
@@ -368,14 +376,20 @@ def NuevoUserPasivo():
                     VALUES (%s, %s, %s)
                 ''', (cedula, Nombre_Familiar, CIFamiliar))
                 mysql.connection.commit()
+            entregado = 1 if 'entregado' in request.form else 0
 
-            cursor.execute('''
+# Solo registrar en delivery si entregado está marcado
+            if entregado:
+              CIFamiliar = request.form.get('cedula-family', None)
+              if not CIFamiliar or CIFamiliar == '':
+               CIFamiliar = None
+              cursor.execute('''
                 INSERT INTO delivery (Time_box, Data_ID, Staff_ID, Observation, Lunch) 
                 VALUES (%s, %s, %s, %s, %s)
             ''', (horaEntrega, cedula, cedula_personal, observacion, lunch))
-            mysql.connection.commit()
+              mysql.connection.commit()
             
-            cursor.execute('''
+              cursor.execute('''
                 INSERT INTO user_history 
                 (cedula, Name_user, cedula_personal, Name_personal,Name_autorizado, Cedula_autorizado,Estatus,typeNomina,Observation, action, time_login) 
                 VALUES (%s, %s, %s, %s, %s, %s,%s, %s, %s,%s,%s)

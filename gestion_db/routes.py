@@ -301,100 +301,88 @@ def vaciar_db():
     return redirect(url_for('gestion_db.gestionar_data'))
 
 # Función para generar backup en Excel
+
 def generar_backup_excel():
-    cursor = None
     try:
-        # Configuración inicial
         backup_dir = os.path.join(Config.BACKUP_FOLDER)
         os.makedirs(backup_dir, exist_ok=True)
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         filename = f'data_benficios_{timestamp}.xlsx'
         filepath = os.path.join(backup_dir, filename)
-        
-        # Conexión a la base de datos
-        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-        
+
         tablas = ['personal', 'autorizados', 'delivery', 'user_history']
         tablas_exportadas = 0
 
-        # Usar with para asegurar el cierre del writer
         with pd.ExcelWriter(filepath, engine='openpyxl') as writer:
             wb = writer.book
-            # Crear hoja temporal inicial (requerido por openpyxl)
             wb.create_sheet("Temporal")
-            
+
             for tabla in tablas:
                 try:
-                    # Verificar si la tabla existe
-                    cursor.execute(f"SHOW TABLES LIKE '{tabla}'")
-                    if not cursor.fetchone():
+                    # Usar un cursor nuevo por tabla
+                    tabla_cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+                    tabla_cursor.execute(f"SHOW TABLES LIKE '{tabla}'")
+                    if not tabla_cursor.fetchone():
+                        tabla_cursor.close()
                         continue
-                    
-                    # Obtener estructura de la tabla
-                    cursor.execute(f"DESCRIBE {tabla}")
-                    columnas = [col[0] for col in cursor.fetchall()]
-                    
-                    # Obtener datos con paginación para tablas grandes
-                    cursor.execute(f"SELECT COUNT(*) as total FROM {tabla}")
-                    total_registros = cursor.fetchone()['total']
-                    
-                    print(f"Tabla: {tabla}, Total registros: {total_registros}")  # Debug
-                    
+
+                    tabla_cursor.execute(f"DESCRIBE {tabla}")
+                    columnas = [col[0] for col in tabla_cursor.fetchall()]
+
+                    tabla_cursor.execute(f"SELECT COUNT(*) as total FROM {tabla}")
+                    total_registros = tabla_cursor.fetchone()['total']
+
+                    print(f"Tabla: {tabla}, Total registros: {total_registros}")
+
                     if total_registros == 0:
                         df = pd.DataFrame(columns=columnas)
                     elif total_registros > 10000:
-                        # Procesamiento por chunks para tablas grandes
                         chunk_size = 5000
                         df_list = []
                         for offset in range(0, total_registros, chunk_size):
-                            cursor.execute(f"SELECT * FROM {tabla} LIMIT {chunk_size} OFFSET {offset}")
-                            chunk = cursor.fetchall()
+                            tabla_cursor.execute(f"SELECT * FROM {tabla} LIMIT {chunk_size} OFFSET {offset}")
+                            chunk = tabla_cursor.fetchall()
                             df_list.append(pd.DataFrame(chunk))
                         df = pd.concat(df_list, ignore_index=True)
                     else:
-                        cursor.execute(f"SELECT * FROM {tabla}")
-                        data = cursor.fetchall()
+                        tabla_cursor.execute(f"SELECT * FROM {tabla}")
+                        data = tabla_cursor.fetchall()
                         df = pd.DataFrame(data)
-                    
-                    # Asegurar estructura de columnas
+
                     df = df.reindex(columns=columnas, fill_value=None)
-                    
-                    # Escribir hoja en el Excel
                     df.to_excel(writer, sheet_name=tabla[:31], index=False)
                     tablas_exportadas += 1
-                    
+                    tabla_cursor.close()
                 except Exception as e:
                     flash(f"Error al exportar tabla {tabla}: {str(e)}", "warning")
                     continue
-            
-            # Eliminar hoja temporal si se exportaron tablas
+
             if tablas_exportadas > 0 and "Temporal" in wb.sheetnames:
                 wb.remove(wb["Temporal"])
-            
-            # Si no se exportó ninguna tabla, crear una hoja con mensaje
             if tablas_exportadas == 0:
                 df = pd.DataFrame({"Mensaje": ["No se encontraron datos para exportar"]})
                 df.to_excel(writer, sheet_name="Información", index=False)
-        
+
         # Registrar acción en el historial
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
         cursor.execute('''
             INSERT INTO user_history (cedula, Name_user, action, time_login) 
             VALUES (%s, %s, %s, %s)
         ''', (
-            session['cedula'], session['username'], 
-            'Generó backup Excel de la base de datos', 
+            session['cedula'], session['username'],
+            'Generó backup Excel de la base de datos',
             datetime.now()
         ))
         mysql.connection.commit()
-        
-        # Eliminar el archivo después de enviarlo 
+        cursor.close()
+
         def cleanup():
             if os.path.exists(filepath):
                 try:
                     os.remove(filepath)
                 except:
                     pass
-        
+
         response = send_file(
             filepath,
             as_attachment=True,
@@ -402,16 +390,12 @@ def generar_backup_excel():
             mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         )
         response.call_on_close(cleanup)
-        
         return response
-        
+
     except Exception as e:
         mysql.connection.rollback()
         flash(f"Error al generar copia de seguridad en Excel: {str(e)}", "danger")
         return redirect(url_for('gestion_db.gestionar_data'))
-    finally:
-        if cursor is not None:
-            cursor.close()
 
 # Ruta para generar copia de seguridad en Excel
 @gestion_db_bp.route("/backup_excel", methods=["POST"])
@@ -425,11 +409,10 @@ def backup_excel_route():
         return response
     flash("Copia de seguridad generada con éxito", "success")
     return response
-
     
   
 
-# Ruta principal de gestión de datos
+# Ruta principal de gestión de `datos
 @gestion_db_bp.route("/gestionar_data", methods=["GET"])
 @requiere_super_admin
 def gestionar_data():
@@ -462,7 +445,7 @@ def carga_history():
         columnas_requeridas = [
             'cedula', 'Name_user', 'Name_personal', 'cedula_personal',
             'Name_autorizado', 'Cedula_autorizado', 'action',
-            'time_login', 'time_finish',"Estatus"
+            'time_login', 'time_finish',"Estatus","Observation","typeNomina"
         ]
         if not all(col in df.columns for col in columnas_requeridas):
             return jsonify({"error": "El archivo no tiene la estructura esperada"}), 400
@@ -488,7 +471,9 @@ def carga_history():
                 action_text,
                 time_login,
                 time_finish,
-               row['Estatus']
+               row['Estatus'],
+               row['Observation'],
+               row['typeNomina'],
             ]
             values = [None if (isinstance(v, float) and math.isnan(v)) else v for v in values]
 
@@ -496,8 +481,8 @@ def carga_history():
                 INSERT INTO user_history (
                     cedula, Name_user, Name_personal, cedula_personal,
                     Name_autorizado, Cedula_autorizado, action,
-                    time_login, time_finish, Estatus
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    time_login, time_finish, Estatus,Observation,typeNomina
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s,%s, %s, %s)
             ''', values)
             insertados += 1
 

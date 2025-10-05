@@ -7,10 +7,10 @@ class Config:
     MYSQL_HOST = 'localhost'
     MYSQL_USER = 'root'
     MYSQL_PASSWORD = 'user623'
-    MYSQL_DB = 'data_beneficios'
+    MYSQL_DB = 'septiembre'
     SESSION_TYPE = 'filesystem'
-    SESSION_PERMANENT =  False
-    PERMANENT_SESSION_LIFETIME = timedelta(minutes=15)
+  
+   
     
     UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
     BACKUP_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'backups')

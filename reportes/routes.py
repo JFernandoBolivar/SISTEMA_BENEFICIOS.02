@@ -339,6 +339,56 @@ def listado_excel():
         return send_file(output, download_name=nombre_archivo, as_attachment=True)
     return render_template('tabla_pdf.html')
 
+# ..............
+
+@reportes_bp.route("/migrar_no_beneficiados_mes", methods=["GET", "POST"])
+def migrar_no_beneficiados_mes():
+    if 'loggedin' not in session:
+        return redirect(url_for('auth.login'))
+
+    ahora = datetime.now()
+    mes = ahora.month
+    anio = ahora.year
+
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+
+    # Selecciona los que no recibieron beneficio en el mes actual
+    cursor.execute('''
+        SELECT personal.Cedula, personal.Name_Com, personal.Location_Physical, 
+               personal.Estatus, personal.ESTADOS, personal.Code, personal.Location_Admin, personal.typeNomina
+        FROM personal
+        LEFT JOIN delivery ON personal.Cedula = delivery.Data_ID
+            AND MONTH(delivery.Time_box) = %s AND YEAR(delivery.Time_box) = %s
+        WHERE delivery.ID IS NULL
+    ''', (mes, anio))
+    no_beneficiados = cursor.fetchall()
+
+    # Evitar duplicidad: solo insertar si no existe ya para ese mes y año
+    for persona in no_beneficiados:
+        cursor.execute('''
+            SELECT 1 FROM sin_beneficio WHERE Cedula = %s AND mes = %s AND anio = %s
+        ''', (persona['Cedula'], mes, anio))
+        existe = cursor.fetchone()
+        if not existe:
+            cursor.execute('''
+                INSERT INTO sin_beneficio (Cedula, Name_Com, Location_Physical, Estatus, ESTADOS, Code, Location_Admin, typeNomina, mes, anio)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ''', (
+                persona['Cedula'],
+                persona['Name_Com'],
+                persona['Location_Physical'],
+                persona['Estatus'],
+                persona['ESTADOS'],
+                persona['Code'],
+                persona['Location_Admin'],
+                persona['typeNomina'],
+                mes,
+                anio
+            ))
+    mysql.connection.commit()
+    cursor.close()
+    return "Migración completada", 200
+# .................
 # listado de las entregas faltantes
 @reportes_bp.route("/listado_no_registrado")
 def listado_no_registrado():
@@ -599,7 +649,7 @@ def reporte():
            SUM(CASE WHEN action LIKE 'Marco como entregado%%' AND typeNomina = 'JUBILADO EXTINTA DISIP' THEN 1 ELSE 0 END) as total_jubilado_extinto_disip,
            SUM(CASE WHEN action LIKE 'Marco como entregado%%' AND typeNomina = 'JUBILADO OBRERO' THEN 1 ELSE 0 END) as total_jubilado_obrero,
            SUM(CASE WHEN action LIKE 'Marco como entregado%%' AND typeNomina = 'JUBILADO POLICIA METROPOLITANO (ADMI)' THEN 1 ELSE 0 END) as total_policia_metropolitano_admi,
-           SUM(CASE WHEN action LIKE 'Marco como entregado%%' AND typeNomina = 'PENSIONADO INCAP/VIUDA EXTINTA DISIP' THEN 1 ELSE 0 END) as total_pensionado_incap_viuda_extinto_disip,
+           SUM(CASE WHEN action LIKE 'Marco como entregado%%' AND typeNomina = 'PENSIONADO INCAP VIUDA EXTINTA DISIP' THEN 1 ELSE 0 END) as total_pensionado_incap_viuda_extinto_disip,
            SUM(CASE WHEN action LIKE 'Marco como entregado%%' AND typeNomina = 'PENSIONADO INCAPACIDAD EMPLEADO' THEN 1 ELSE 0 END) as total_pensionado_incapacidad_empleado,
            SUM(CASE WHEN action LIKE 'Marco como entregado%%' AND typeNomina = 'PENSIONADO SOBREVIVIENTE' THEN 1 ELSE 0 END) as total_sobreviviente,
            SUM(CASE WHEN action LIKE 'Marco como entregado%%' AND typeNomina = 'PENSIONADOS MENORES EXTINTA DISIP' THEN 1 ELSE 0 END) as total_pensionado_menores_extinto_disip,
@@ -713,7 +763,7 @@ def reporte_pdf():
                SUM(CASE WHEN action LIKE 'Marco como entregado%%' AND typeNomina = 'JUBILADO EXTINTA DISIP' THEN 1 ELSE 0 END) as total_jubilado_extinto_disip,
                SUM(CASE WHEN action LIKE 'Marco como entregado%%' AND typeNomina = 'JUBILADO OBRERO' THEN 1 ELSE 0 END) as total_jubilado_obrero,
                SUM(CASE WHEN action LIKE 'Marco como entregado%%' AND typeNomina = 'JUBILADO POLICIA METROPOLITANO (ADMI)' THEN 1 ELSE 0 END) as total_policia_metropolitano_admi,
-               SUM(CASE WHEN action LIKE 'Marco como entregado%%' AND typeNomina = 'PENSIONADO INCAP/VIUDA EXTINTA DISIP' THEN 1 ELSE 0 END) as total_pensionado_incap_viuda_extinto_disip,
+               SUM(CASE WHEN action LIKE 'Marco como entregado%%' AND typeNomina = 'PENSIONADO INCAP VIUDA EXTINTA DISIP' THEN 1 ELSE 0 END) as total_pensionado_incap_viuda_extinto_disip,
                SUM(CASE WHEN action LIKE 'Marco como entregado%%' AND typeNomina = 'PENSIONADO INCAPACIDAD EMPLEADO' THEN 1 ELSE 0 END) as total_pensionado_incapacidad_empleado,
                SUM(CASE WHEN action LIKE 'Marco como entregado%%' AND typeNomina = 'PENSIONADO SOBREVIVIENTE' THEN 1 ELSE 0 END) as total_sobreviviente,
                SUM(CASE WHEN action LIKE 'Marco como entregado%%' AND typeNomina = 'PENSIONADOS MENORES EXTINTA DISIP' THEN 1 ELSE 0 END) as total_pensionado_menores_extinto_disip,
@@ -818,13 +868,13 @@ def nomina_personal():
     nomina_raw = cursor.fetchall()
     cursor.close()
 
-    # Filtrar registros únicos por Estatus
-    estatus_vistos = set()
+    # Filtrar registros únicos por typeNomina (no por Estatus)
+    tipos_vistos = set()
     nomina_filtrada = []
 
     for n in nomina_raw:
-        if n['typeNomina'] not in estatus_vistos:
-            estatus_vistos.add(n['typeNomina'])
+        if n['typeNomina'] and n['typeNomina'] not in tipos_vistos:
+            tipos_vistos.add(n['typeNomina'])
             nomina_filtrada.append(n)
 
     return render_template(
@@ -832,7 +882,7 @@ def nomina_personal():
         nomina=nomina_filtrada
     )
 
-@reportes_bp.route("/suspender_nomina/<string:typeNomina>", methods=["POST"])
+@reportes_bp.route("/suspender_nomina/<path:typeNomina>", methods=["POST"])
 def suspender_nomina(typeNomina):
     if 'loggedin' not in session:
         return redirect(url_for('auth.login'))
@@ -847,7 +897,7 @@ def suspender_nomina(typeNomina):
     cursor.close()
     return redirect(url_for('reportes.nomina_personal'))
 
-@reportes_bp.route("/activar_nomina/<string:typeNomina>", methods=["POST"])
+@reportes_bp.route("/activar_nomina/<path:typeNomina>", methods=["POST"])
 def activar_nomina(typeNomina):
     if 'loggedin' not in session:
         return redirect(url_for('auth.login'))

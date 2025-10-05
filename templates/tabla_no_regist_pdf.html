@@ -25,7 +25,7 @@
       .table th,
       .table td {
         border: 1px solid #000;
-        padding: 8px;
+        padding:6px;
         white-space: normal;
         text-align: center;
         word-wrap: break-word;
@@ -35,11 +35,17 @@
       .table td:first-child {
         width: 4%;
       }
+      .table th:nth-child(3),
+.table td:nth-child(3) {
+  width: 5.5%;
+}
       .table th {
         background-color: #f2f2f2;
       }
       .list {
         text-align: center;
+        font-size: -2em;
+        /* transform: translateX(-1); */
       }
       .logos {
         display: flex;
@@ -52,21 +58,26 @@
         font-size: 0.6em;
         margin-left: 0.3em;
         margin-right: auto;
-        transform: translateY(-2.8em);
+        transform: translateY(-2em);
       }
       .mpj {
-        transform: translateX(-32em);
+        transform: translateX(-0.7em);
         margin-right: auto;
         left: 0;
+        font-size: 2em;
+        width: 2;
       }
       .hrr {
         margin-left: auto;
-        transform: translateX(1.3em);
+        font-size: 1.4em;
+        margin-top: 0.3em;
+        transform: translateX(0.6em);
       }
       .mpj,
       .hrr {
         padding-top: 1.5em;
-        width: 3.5em;
+        width: 5em;
+        margin-top: -0.7em;
       }
       .table tbody tr {
         page-break-inside: avoid;
@@ -81,13 +92,13 @@
   <body>
     <div class="container_tabla tabla_pdf">
       <div class="logos">
-        <p>REPUBLICA BOLIVARIANA DE VENEZUELA</p>
+      
         <img
-          src="{{ url_for('static', filename='css/img/logo.png', _external=True) }}"
+          src="{{ url_for('static', filename='css/img/cintillo.png', _external=True) }}"
           class="mpj"
         />
         <img
-          src="{{ url_for('static', filename='css/img/logo2.png', _external=True) }}"
+          src="{{ url_for('static', filename='css/img/logopaz.png', _external=True) }}"
           class="hrr"
         />
       </div>
