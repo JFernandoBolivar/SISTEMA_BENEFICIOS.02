@@ -9,102 +9,135 @@
         width: 100%;
         margin: 0 auto;
         justify-content: center;
+        margin-top: 0em;
       }
+
       .table {
+        font-size: 5px;
         margin-top: 2em;
-        font-size: 1em;
         width: 100%;
         border-collapse: collapse;
         text-align: center;
         table-layout: fixed;
-      }
-      .table th:first-child,
-      .table td:first-child {
-        width: 4%;
-      }
-      .table th,
-      .table td {
-        border: 1px solid #000;
-        padding: 7px 2px;
-        text-align: center;
-        white-space: normal;
-        word-wrap: break-word;
-        font-size: 10px;
-      }
-      .table th {
-        background-color: #f2f2f2;
-      }
+      } /*
+            .table th:first-child,
+            .table td:first-child {
+              width: 4%;
+            }
+            .table th,
+            .table td {
+              border: 1px solid #000;
+              padding: 7px 2px;
+              text-align: center;
+              white-space: normal;
+              word-wrap: break-word;
+              font-size: 10px;
+            }
+            .table th {
+              background-color: #f2f2f2;
+            }
 
-      .list {
-        text-align: center;
-        margin-top: 1em;
-      }
-      .logos {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
+            .list {
+              text-align: center;
+              margin-top: 1em;
+              margin-bottom: 3em;
+            }
+            .logos {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              width: 100%;
+              margin-bottom: 1em; 
+            } */
+
+      /* .TextPersonal td,
+            .TextPersonal th {
+              font-size: 11px;
+            } */
+      /* ENCABEZADO FIJO */
+      .encabezado-fijo {
+        position: fixed;
+        top: 0;
+        left: 0;
         width: 100%;
-        margin-bottom: 1em;
-        margin-top: -2.5em;
-      }
-      .logo2 {
-        /* margin-bottom: auto; */
-        margin-bottom: 0;
-        margin-bottom: -0.2em;
-        /* position: fixed; */
-      }
-      .banda-bandera {
-        width: 100%;
-      }
-      /* .logos > p {
-        font-size: 0.6em;
-        margin-left: 0.3em;
-        margin-right: auto;
-        transform: translateY(-3.5em);
-      } */
+        margin-bottom: 8em;
+        background: white;
+        z-index: 1000;
+        padding: 5px 0;
+        page-break-after: always;
+      } /* 
+            .info-generacion {
+              text-align: end;
+              font-size: 13px;
+              margin-top: 0.3em;
+              padding: 0 20px;
+            }
+*/
       .mpj {
         transform: translateX(0.3em);
         margin-right: auto;
         left: 0;
-        font-size: 3em;
+        font-size: 2em;
+        width: 2;
       }
-      .TextPersonal td,
-      .TextPersonal th {
-        font-size: 11px;
-      }
-
       .hrr {
         margin-left: auto;
-        font-size: 2em;
+        font-size: 1.4em;
         margin-top: 0.3em;
+        transform: translateX(-0.4em);
       }
       .mpj,
       .hrr {
-        padding-top: 1em;
-        width: 3.5em;
-      }
-      .table tbody tr {
-        page-break-inside: avoid;
-      }
+        padding-top: 1.5em;
+        width: 5em;
+        margin-top: -0.7em;
+      } /*
+            .table tbody tr {
+              page-break-inside: avoid;
+            }
+            thead {
+              display: table-header-group;
+            } */
       @page {
         margin: 1cm;
+        margin-bottom: 2cm; /* Aún más espacio */
+
         @bottom-center {
+          content: "";
+          background: url("{{ url_for('static', filename='css/img/banda_bandera.png', _external=True) }}")
+            no-repeat center center;
+          background-size: 100% auto;
+          height: auto;
+          min-height: 1.5cm;
+          width: 100%;
+          padding-bottom: 1.2cm; /* Esto define la altura efectiva */
+        }
+
+        @bottom-right {
           content: "Página " counter(page) " de " counter(pages);
+          font-size: 13px;
+          margin-top: -0.5cm;
+          position: relative;
+          margin-left: -10cm;
+          transform: translateX(-9cm);
+          top: -1cm; /* Sube el número de página */
         }
       }
     </style>
   </head>
   <body>
     <div class="container_tabla tabla_pdf">
-      <div class="logos">
-        <img
-          src="{{ url_for('static', filename='css/img/cintillo.png', _external=True) }}"
-          class="mpj"
-        />
-        <img
-          src="{{ url_for('static', filename='css/img/logopaz.png', _external=True) }}"
-          class="hrr"
-        />
+      <div class="encabezado-fijo">
+        <div class="logos">
+          <img
+            src="{{ url_for('static', filename='css/img/cintillo.png', _external=True) }}"
+            class="mpj"
+          />
+          <img
+            src="{{ url_for('static', filename='css/img/logopaz.png', _external=True) }}"
+            class="hrr"
+          />
+        </div>
       </div>
       <p style="text-align: end; font-size: 13px">
         <b>Generado por:</b> {{ usuario }}
@@ -185,12 +218,6 @@
             {% endif %}
           </tbody>
         </table>
-      </div>
-      <div class="logo2">
-        <img
-          src="{{ url_for('static', filename='css/img/banda_bandera.png', _external=True) }}"
-          class="banda-bandera"
-        />
       </div>
     </div>
   </body>

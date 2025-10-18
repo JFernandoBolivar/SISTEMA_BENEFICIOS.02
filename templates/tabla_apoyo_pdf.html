@@ -17,10 +17,10 @@
     />
     <style>
       .container_tabla {
+        font-family: Arial, sans-serif;
         width: 100%;
         margin: 0 auto;
         justify-content: center;
-        font-family: Arial, sans-serif;
       }
 
       a {
@@ -90,6 +90,8 @@
       }
       .list {
         text-align: center;
+
+        margin-top: 1.4em;
       }
       .logos {
         display: flex;
@@ -98,55 +100,88 @@
         width: 100%;
         margin-bottom: 1em;
       }
-      .logos > p {
-        font-size: 0.6em;
-        margin-left: 0.3em;
-        margin-right: auto;
-        transform: translateY(-2.8em);
-      }
       .mpj {
-        transform: translateX(-37em);
+        transform: translateX(0.3em);
         margin-right: auto;
         left: 0;
+        font-size: 2em;
+        width: 2;
       }
       .hrr {
         margin-left: auto;
+        font-size: 1.4em;
+        /* margin-top: 0.3em; */
+        transform: translateX(-0.4em);
       }
       .mpj,
       .hrr {
-        padding-top: 1.5em;
-        width: 3.5em;
+        /* padding-top: 1.5em; */
+        width: 5em;
+        /* margin-top: -0.7em; */
       }
       .table tbody tr {
         page-break-inside: avoid;
       }
+      .encabezado-fijo {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        /* margin-bottom: 6em; */
+        background: white;
+        z-index: 1000;
+        padding: 10px 0;
+        page-break-after: always;
+      }
       @page {
         margin: 1cm;
+        margin-bottom: 2cm; /* Aún más espacio */
+
         @bottom-center {
-          content: "Pagina " counter(page) " de " counter(pages);
+          content: "";
+          background: url("{{ url_for('static', filename='css/img/banda_bandera.png', _external=True) }}")
+            no-repeat center center;
+          background-size: 100% auto;
+          height: auto;
+          min-height: 1.5cm;
+          width: 100%;
+          padding-bottom: 1.2cm; /* Esto define la altura efectiva */
+        }
+
+        @bottom-right {
+          content: "Página " counter(page) " de " counter(pages);
+          font-size: 13px;
+          margin-top: -0.5cm;
+          position: relative;
+          margin-left: -10cm;
+          transform: translateX(-9cm);
+          top: -1cm; /* Sube el número de página */
         }
       }
     </style>
   </head>
   <body>
     <div class="container_tabla tabla_pdf">
-      <div class="logos">
-        <p>REPUBLICA BOLIVARIANA DE VENEZUELA</p>
-        <img
-          src="{{ url_for('static', filename='css/img/logo.png', _external=True) }}"
-          class="mpj"
-        />
-        <img
-          src="{{ url_for('static', filename='css/img/logo2.png', _external=True) }}"
-          class="hrr"
-        />
+      <div class="encabezado-fijo">
+        <div class="logos">
+          <img
+            src="{{ url_for('static', filename='css/img/cintillo.png', _external=True) }}"
+            class="mpj"
+          />
+          <img
+            src="{{ url_for('static', filename='css/img/logopaz.png', _external=True) }}"
+            class="hrr"
+          />
+        </div>
       </div>
-      <p style="text-align: end; font-size: 13px">
-        <b>Generado por:</b> {{ usuario }}
-      </p>
-      <p style="text-align: end; font-size: 13px">
-        <b>Fecha de generación:</b> {{ fecha_actual }}
-      </p>
+      <div style="margin-top: 6em">
+        <p style="text-align: end; font-size: 13px">
+          <b>Generado por:</b> {{ usuario }}
+        </p>
+        <p style="text-align: end; font-size: 13px">
+          <b>Fecha de generación:</b> {{ fecha_actual }}
+        </p>
+      </div>
       <h1 class="list">Listado de apoyo que ha Recibido la Caja</h1>
       {% if mes %}
       <p style="text-align: center"><b>Fecha:</b> {{ mes }}</p>

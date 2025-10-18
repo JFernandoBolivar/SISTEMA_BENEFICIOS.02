@@ -1,14 +1,14 @@
     <style>
      
       .container_tabla {
-        font-family: Arial, sans-serif;
+font-family: Arial, sans-serif;
         width: 100%;
-        margin: -3.5em auto;
+        margin: 0 auto;
         justify-content: center;
         
-        /* transform: translateX(-2.5em); */
       }
       .table {
+        margin-top: 2em;
         font-size: 5px;
         width: 100%;
         border-collapse: collapse;
@@ -44,8 +44,9 @@
       }
       .list {
         text-align: center;
+        margin-top: 1em;
         font-size: -2em;
-        /* transform: translateX(-1); */
+        margin-left:-0.8em ;
       }
       .logos {
         display: flex;
@@ -54,14 +55,9 @@
         width: 100%;
         margin-bottom: 1em;
       }
-      .logos > p {
-        font-size: 0.6em;
-        margin-left: 0.3em;
-        margin-right: auto;
-        transform: translateY(-2em);
-      }
+      
       .mpj {
-        transform: translateX(-0.7em);
+        transform: translateX(0.3em);
         margin-right: auto;
         left: 0;
         font-size: 2em;
@@ -70,44 +66,78 @@
       .hrr {
         margin-left: auto;
         font-size: 1.4em;
-        margin-top: 0.3em;
-        transform: translateX(0.6em);
+        /* margin-top: 0.3em; */
+        transform: translateX(-0.4em);
       }
       .mpj,
       .hrr {
-        padding-top: 1.5em;
+        /* padding-top: 1.5em; */
         width: 5em;
-        margin-top: -0.7em;
+        /* margin-top: -0.7em; */
       }
       .table tbody tr {
         page-break-inside: avoid;
+      }.encabezado-fijo {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        /* margin-bottom: 6em; */
+        background: white;
+        z-index: 1000;
+        padding: 10px 0;
+        page-break-after: always;
       }
        @page {
+        margin: 1cm;
+        margin-bottom: 2cm; /* Aún más espacio */
+
         @bottom-center {
-          content: "Pagina  " counter(page) " de " counter(pages);
+          content: "";
+          background: url("{{ url_for('static', filename='css/img/banda_bandera.png', _external=True) }}")
+            no-repeat center center;
+          background-size: 100% auto;
+          height: auto;
+          min-height: 1.5cm;
+          width: 100%;
+          padding-bottom: 1.2cm; /* Esto define la altura efectiva */
+        }
+
+        @bottom-right {
+          content: "Página " counter(page) " de " counter(pages);
+          font-size: 13px;
+          margin-top: -0.5cm;
+          position: relative;
+          margin-left: -10cm;
+          transform: translateX(-9cm);
+          top: -1cm; /* Sube el número de página */
         }
       }
     </style>
   </head>
   <body>
     <div class="container_tabla tabla_pdf">
-      <div class="logos">
-      
-        <img
-          src="{{ url_for('static', filename='css/img/cintillo.png', _external=True) }}"
-          class="mpj"
-        />
-        <img
-          src="{{ url_for('static', filename='css/img/logopaz.png', _external=True) }}"
-          class="hrr"
-        />
+       <div class="encabezado-fijo">
+        <div class="logos">
+          <img
+            src="{{ url_for('static', filename='css/img/cintillo.png', _external=True) }}"
+            class="mpj"
+          />
+          <img
+            src="{{ url_for('static', filename='css/img/logopaz.png', _external=True) }}"
+            class="hrr"
+          />
+        </div>
       </div>
-      <p style="text-align: end; font-size: 13px">
-        <b>Generado por:</b> {{ usuario }}
-      </p>
-      <p style="text-align: end; font-size: 13px">
-        <b>Fecha de generación:</b> {{ fecha_actual }}
-      </p>
+      
+      <div style="margin-top: 6em">
+        <p style="text-align: end; font-size: 13px">
+          <b>Generado por:</b> {{ usuario }}
+        </p>
+        <p style="text-align: end; font-size: 13px">
+          <b>Fecha de generación:</b> {{ fecha_actual }}
+        </p>
+      </div>
       <h1 class="list">Listado de Personas que no han Recibido la Caja</h1>
       {% if filtro and filtro != 'todos' %}
         <p style="text-align: center">

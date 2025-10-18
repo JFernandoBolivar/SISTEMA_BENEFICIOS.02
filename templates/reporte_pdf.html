@@ -9,6 +9,7 @@
         width: 100%;
         margin: 0 auto;
         justify-content: center;
+        margin-top: 10em;
       }
       .table {
         margin-top: 2em;
@@ -32,23 +33,25 @@
       }
       .table th:first-child,
       .table td:first-child {
-        width: 6%;
+        width: 8%;
       }
+
       .table th:nth-last-child(2),
       .table td:nth-last-child(2) {
-        width: 4%;
+        width: 3%;
       }
       .list {
         text-align: center;
         margin-top: 1em;
         font-size: 4em;
+        margin-bottom: 3em;
       }
       .logos {
         display: flex;
         justify-content: space-between;
         align-items: center;
         width: 100%;
-        margin-bottom: 1em;
+        /* margin-bottom: 1em; */
       }
       .mpj {
         transform: translateX(-0.5m);
@@ -65,7 +68,7 @@
       .mpj,
       .hrr {
         /* padding-top: -2.5em; */
-        margin-top: -1.5em;
+        margin-top: 0.3em;
         width: 6em;
         /* font-size: 2.5em; */
       }
@@ -75,11 +78,48 @@
       thead {
         display: table-header-group;
       }
+      /* ENCABEZADO FIJO */
+      .encabezado-fijo {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        /* margin-bottom: 6em; */
+        background: white;
+        z-index: 1000;
+        padding: 10px 0;
+        page-break-after: always;
+      }
+      .info-generacion {
+        text-align: end;
+        font-size: 13px;
+        margin-top: 0.3em;
+        padding: 0 20px;
+      }
+
       @page {
-        margin: 1cm;
+        margin: 0.5cm;
+        margin-bottom: 2cm; /* Aún más espacio */
+
         @bottom-center {
-          content: "Pagina " counter(page) " de " counter(pages);
-          /* content: url("{{ url_for("static", filename="css/img/cintillo.png", _external=True) }}"); */
+          content: "";
+          background: url("{{ url_for('static', filename='css/img/banda_bandera.png', _external=True) }}")
+            no-repeat center center;
+          background-size: 100% auto;
+          height: auto;
+          min-height: 1.5cm;
+          width: 100%;
+          padding-bottom: 1.2cm; /* Esto define la altura efectiva */
+        }
+
+        @bottom-right {
+          content: "Página " counter(page) " de " counter(pages);
+          font-size: 13px;
+          margin-top: -0.5cm;
+          position: relative;
+          margin-left: -10cm;
+          transform: translateX(-9cm);
+          top: -1cm; /* Sube el número de página */
         }
       }
     </style>
@@ -91,22 +131,26 @@
           <thead class="table-dark">
             <tr>
               <th colspan="15" style="background: none; border: none">
-                <div class="logos">
-                  <img
-                    src="{{ url_for('static', filename='css/img/cintillo.png', _external=True) }}"
-                    class="mpj"
-                  />
-                  <img
-                    src="{{ url_for('static', filename='css/img/logopaz.png', _external=True) }}"
-                    class="hrr"
-                  />
+                <div class="encabezado-fijo">
+                  <div class="logos">
+                    <img
+                      src="{{ url_for('static', filename='css/img/cintillo.png', _external=True) }}"
+                      class="mpj"
+                    />
+                    <img
+                      src="{{ url_for('static', filename='css/img/logopaz.png', _external=True) }}"
+                      class="hrr"
+                    />
+                  </div>
                 </div>
-                <div
-                  style="text-align: end; font-size: 13px; margin-top: 0.3em"
-                >
-                  <b>Generado por:</b> {{ usuario }}<br />
+
+                <p style="text-align: end; font-size: 13px; margin-top: -4em">
+                  <b>Generado por:</b> {{ usuario }}
+                </p>
+                <p style="text-align: end; font-size: 13px">
                   <b>Fecha de generación:</b> {{ fecha_actual }}
-                </div>
+                </p>
+
                 <h1 class="list">Reporte de Beneficios</h1>
               </th>
             </tr>
